@@ -9,6 +9,7 @@ StreamGrid is a lightweight, zero-dependency JavaScript data table library writt
 ## Live Demo
 
 [**Try StreamGrid →**](https://mihai-r-lupu.github.io/streamgrid/docs/index.html)
+![StreamGrid Demo](docs/demo.gif)
 
 ---
 
