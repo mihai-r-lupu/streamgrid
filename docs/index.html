@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>StreamGrid — Live Demo</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="../src/streamgrid.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #1a1a1a;
+            background: #f0f2f5;
+            line-height: 1.5;
+        }
+
+        /* ── Header bar ─────────────────────────────────────────── */
+        .page-header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: #fff;
+            padding: 32px 0 28px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .page-header .header-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+
+        .page-header h1 {
+            margin: 0 0 6px;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .page-header .subtitle {
+            color: #94a3b8;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .page-header code {
+            background: rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        /* ── Main content area ───────────────────────────────────── */
+        .content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 200px 32px 48px;
+        }
+
+        section {
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            margin: 0 0 6px;
+            padding-left: 16px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        #infinite-demo .sg-table-wrapper {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        code {
+            background: #eef2ff;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #4338ca;
+        }
+
+        .filter-mode-indicator {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 6px;
+            font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+            background: #f1f5f9;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .section-note {
+            padding: 0 16px;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin: 0 0 4px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="page-header">
+        <div class="header-inner">
+            <h1>StreamGrid — Live Demo</h1>
+            <p class="subtitle">
+                Zero-dependency ES6+ data grid. This page runs entirely in the browser with no backend —
+                a <code>StaticAdapter</code> wraps an in-memory dataset of 500 rows.
+            </p>
+            <div class="badge-row">
+                <span class="badge">Zero Dependencies</span>
+                <span class="badge">ES Modules</span>
+                <span class="badge">No Build Step</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <section>
+            <h2>Pagination (Pages Mode) + Filtering</h2>
+            <p class="section-note">
+                This grid uses <code>filterMode: 'auto'</code> with <code>clientFilterThreshold: 100</code>.
+                Since 500 rows are loaded, filtering is handled server-side through the adapter.
+            </p>
+            <div id="pages-demo" class="grid-container"></div>
+        </section>
+
+        <section>
+            <h2>Numbered Pagination with Sliding Window</h2>
+            <div id="numbers-demo" class="grid-container"></div>
+        </section>
+
+        <section>
+            <h2>Infinite Scroll</h2>
+            <div id="infinite-demo" class="grid-container"></div>
+        </section>
+
+    </main>
+
+    <script type="module">
+        import { StreamGrid } from '../src/StreamGrid.js';
+        import { BaseDataAdapter } from '../src/dataAdapter/BaseDataAdapter.js';
+        import { filterRows } from '../src/core/filtering/filterEngine.js';
+
+        // ── StaticAdapter: wraps a plain JS array as a data source ──────────────
+        class StaticAdapter extends BaseDataAdapter {
+            constructor(rows) {
+                super();
+                this.rows = rows;
+            }
+            async getColumns() {
+                return this.rows.length ? Object.keys(this.rows[0]) : [];
+            }
+            async fetchData(table, config = {}) {
+                let result = this.rows;
+                // Support server-side filtering path so auto mode works
+                if (config.query) {
+                    result = filterRows(result, config.fields || [], config.query, {
+                        exactCase: config.filterOptions?.exactCase ?? false,
+                    });
+                }
+                return result;
+            }
+            async insertRow() { throw new Error('Read-only demo'); }
+            async updateRow() { throw new Error('Read-only demo'); }
+            async deleteRow() { throw new Error('Read-only demo'); }
+        }
+
+        // ── Generate 500 deterministic rows ─────────────────────────────────────
+        const firstNames = [
+            'Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Heidi',
+            'Ivan', 'Judy', 'Karen', 'Leo', 'Mona', 'Nick', 'Olivia', 'Paul',
+            'Quinn', 'Rachel', 'Sam', 'Tina', 'Uma', 'Victor', 'Wendy', 'Xander',
+            'Yara', 'Zach'
+        ];
+        const lastNames = [
+            'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller',
+            'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Wilson',
+            'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee'
+        ];
+        const cities = [
+            'New York', 'London', 'Berlin', 'Tokyo', 'Paris', 'Sydney', 'Toronto',
+            'Mumbai', 'Dubai', 'São Paulo', 'Singapore', 'Seoul', 'Amsterdam',
+            'Stockholm', 'Chicago', 'Austin', 'Denver', 'Miami', 'Barcelona', 'Lisbon'
+        ];
+        const departments = [
+            'Engineering', 'Marketing', 'Sales', 'Support', 'Design',
+            'Finance', 'HR', 'Legal', 'Operations', 'Product'
+        ];
+        const statuses = ['Active', 'Inactive', 'Pending', 'On Leave'];
+
+        const rows = Array.from({ length: 500 }, (_, i) => {
+            const id = i + 1;
+            const first = firstNames[i % firstNames.length];
+            const last = lastNames[i % lastNames.length];
+            return {
+                id,
+                name: `${first} ${last}`,
+                email: `${first.toLowerCase()}.${last.toLowerCase()}${id}@example.com`,
+                department: departments[i % departments.length],
+                city: cities[i % cities.length],
+                status: statuses[i % statuses.length],
+            };
+        });
+
+        const adapter = new StaticAdapter(rows);
+
+        // ── Grid 1: Classic Pages + Filtering ───────────────────────────────────
+        const grid1 = new StreamGrid('#pages-demo', {
+            dataAdapter: adapter,
+            table: 'users',
+            columns: [
+                { field: 'name', label: 'Name' },
+                { field: 'email', label: 'Email' },
+                { field: 'department', label: 'Department' },
+                { field: 'city', label: 'City' },
+                { field: 'status', label: 'Status' },
+            ],
+            pagination: true,
+            paginationMode: 'pages',
+            pageSize: 10,
+            paginationFirstLastButtons: true,
+            filters: ['name', 'email', 'department', 'city'],
+            filterDebounceTime: 200,
+            filterMode: 'auto',
+            clientFilterThreshold: 100,
+            loadDefaultCss: false,
+        });
+
+        // ── Filter mode indicator ────────────────────────────────────────────────
+        grid1.on('dataLoaded', () => {
+            updateFilterIndicator(grid1);
+        });
+        grid1.on('filterApplied', () => {
+            updateFilterIndicator(grid1);
+        });
+
+        function updateFilterIndicator(grid) {
+            let el = document.querySelector('.filter-mode-indicator');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'filter-mode-indicator';
+                const controls = grid.container.querySelector('.sg-controls');
+                if (controls) controls.appendChild(el);
+            }
+            const total = grid.dataSet.data.length;
+            const threshold = grid.clientFilterThreshold;
+            if (total > threshold) {
+                el.textContent = `Filter mode: server (${total} rows, above threshold of ${threshold})`;
+            } else {
+                el.textContent = `Filter mode: client (${total} rows in memory)`;
+            }
+        }
+
+        // ── Grid 2: Numbered Pagination ─────────────────────────────────────────
+        new StreamGrid('#numbers-demo', {
+            dataAdapter: adapter,
+            table: 'users',
+            columns: [
+                { field: 'name', label: 'Name' },
+                { field: 'email', label: 'Email' },
+                { field: 'department', label: 'Department' },
+                { field: 'city', label: 'City' },
+                { field: 'status', label: 'Status' },
+            ],
+            pagination: true,
+            paginationMode: 'numbers',
+            pageSize: 10,
+            paginationFirstLastButtons: true,
+            paginationOptions: {
+                maxPageButtons: 7,
+                showEllipses: true,
+                showPageInput: true,
+            },
+            filters: ['name', 'email', 'department', 'city'],
+            filterDebounceTime: 200,
+            loadDefaultCss: false,
+        });
+
+        // ── Grid 3: Infinite Scroll ─────────────────────────────────────────────
+        new StreamGrid('#infinite-demo', {
+            dataAdapter: adapter,
+            table: 'users',
+            columns: [
+                { field: 'name', label: 'Name' },
+                { field: 'email', label: 'Email' },
+                { field: 'department', label: 'Department' },
+                { field: 'city', label: 'City' },
+                { field: 'status', label: 'Status' },
+            ],
+            pagination: true,
+            paginationMode: 'infinite',
+            pageSize: 20,
+            infiniteScrollPageSize: 20,
+            infiniteScrollTriggerDistance: 150,
+            filters: ['name', 'email', 'department', 'city'],
+            filterDebounceTime: 200,
+            loadDefaultCss: false,
+        });
+    </script>
+
+</body>
+
+</html>

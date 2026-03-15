@@ -1,0 +1,12 @@
+node_modules/
+.private/
+.vscode/
+dist/
+coverage/
+test-results/
+tests/integration/old/
+db.json
+test-db.json
+*.DS_Store
+*.log
+desktop.ini

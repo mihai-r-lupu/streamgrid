@@ -1,0 +1,41 @@
+{
+  "name": "stream-grid",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Lightweight, zero-dependency ES6+ data table library with pluggable adapters, auto-switching client/server filtering, three pagination modes, a hook system, and a plugin API.",
+  "main": "src/StreamGrid.js",
+  "module": "src/StreamGrid.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test:unit": "mocha tests/unit/run-unit-tests.mjs",
+    "test:e2e": "playwright test tests/integration/streamgrid.spec.js",
+    "test": "npm run test:unit && npm run test:e2e",
+    "serve:test": "json-server test-db.json --port 3000 --static .",
+    "demo": "json-server test-db.json --port 3000 --static . --open /test-page.html"
+  },
+  "keywords": [
+    "data-grid",
+    "table",
+    "vanilla-js",
+    "es6",
+    "pagination",
+    "filtering"
+  ],
+  "author": "Mihai Lupu",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mihai-r-lupu/stream-grid.git"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "chai": "^5.2.0",
+    "esm": "^3.2.25",
+    "jsdom": "^26.1.0",
+    "json-server": "^0.17.4",
+    "mocha": "^10.2.0",
+    "sinon": "^20.0.0"
+  }
+}

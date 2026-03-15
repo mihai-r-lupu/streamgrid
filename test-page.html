@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>StreamGrid E2E & Manual Test Page</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./src/streamgrid.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #1a1a1a;
+      background: #f0f2f5;
+      line-height: 1.5;
+    }
+
+    /* ── Header bar ─────────────────────────────────────────── */
+    .page-header {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      color: #fff;
+      padding: 28px 0 24px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+
+    .page-header .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    .page-header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .page-header p {
+      color: #94a3b8;
+      margin: 4px 0 0;
+      font-size: 0.9rem;
+    }
+
+    /* ── Main content area ───────────────────────────────────── */
+    .content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 150px 28px 48px;
+    }
+
+    section {
+      margin-bottom: 36px;
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      padding: 0 16px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    h2 code {
+      background: #eef2ff;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #4338ca;
+    }
+
+    #grid .sg-table-wrapper,
+    #infinite-grid .sg-table-wrapper {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="page-header">
+    <div class="header-inner">
+      <h1>StreamGrid — Test Page</h1>
+      <p>E2E and manual testing — 6 grid configurations against a live REST API</p>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- 1) Default Grid for E2E (Infinite + Filters) -->
+    <section id="default-e2e-test">
+      <h2>Default Grid (<code>#grid</code>) — Infinite + Filters</h2>
+      <div id="grid" class="grid-container"></div>
+    </section>
+
+    <!-- 2) Classic Pages Mode -->
+    <section id="pagination-test">
+      <h2>Pagination Test (Pages Mode)</h2>
+      <div id="pagination-grid" class="grid-container"></div>
+    </section>
+
+    <!-- 3) Numbers Mode -->
+    <section id="numbers-test">
+      <h2>Numbers Pagination Test (Numbers Mode)</h2>
+      <div id="numbers-grid" class="grid-container"></div>
+    </section>
+
+    <!-- 4) Filtering -->
+    <section id="filtering-test">
+      <h2>Filtering Test</h2>
+      <div id="filtering-grid" class="grid-container"></div>
+    </section>
+
+    <!-- 5) Infinite Scroll Manual -->
+    <section id="infinite-scroll-test">
+      <h2>Infinite Scroll Test</h2>
+      <div id="infinite-grid" class="grid-container"></div>
+    </section>
+
+    <!-- 6) Events (click rows/cells, check console) -->
+    <section id="event-test">
+      <h2>Events (click rows/cells, check console)</h2>
+      <div id="event-grid" class="grid-container"></div>
+    </section>
+
+  </main>
+
+  <script type="module">
+    import { StreamGrid } from './src/StreamGrid.js';
+    import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
+
+    const adapter = new RestApiAdapter({ baseUrl: 'http://localhost:3000' });
+
+    // 1) Default (#grid): infinite + filters
+    window.grid = new StreamGrid('#grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: ['name', 'email', 'status'],
+      pagination: true,
+      paginationMode: 'infinite',
+      pageSize: 10,
+      filters: ['name', 'email'],
+      filterDebounceTime: 300,
+      filterCaseSensitive: false,
+      infiniteScrollTriggerDistance: 150,
+      infiniteScrollPageSize: 10
+    });
+
+    // E2E specs listen for these console logs:
+    window.grid.on('dataLoaded', data => console.log('[Event] dataLoaded', data.length));
+    window.grid.on('tableRendered', () => console.log('[Event] tableRendered'));
+    window.grid.on('dataRowClicked', row => console.log('[Event] dataRowClicked', row));
+    window.grid.on('cellClicked', payload => console.log('[Event] cellClicked', payload));
+
+    // 2) Pages mode
+    new StreamGrid('#pagination-grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: ['name', 'email', 'status', 'department', 'city'],
+      pagination: true,
+      paginationMode: 'pages',
+      pageSize: 15
+    });
+
+    // 3) Numbers mode
+    new StreamGrid('#numbers-grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: ['name', 'email', 'status', 'department', 'city'],
+      pagination: true,
+      paginationMode: 'numbers',
+      pageSize: 15,
+      paginationOptions: {
+        maxPageButtons: 7,
+        showEllipses: true,
+        showPageInput: true,
+        groupSize: 100,
+        jumpOffset: 10
+      }
+    });
+
+    // 4) Filtering
+    new StreamGrid('#filtering-grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: ['name', 'email', 'status', 'department', 'city'],
+      pagination: true,
+      paginationMode: 'pages',
+      pageSize: 20,
+      filters: ['name', 'email', 'department', 'city'],
+      filterDebounceTime: 300,
+      filterCaseSensitive: false
+    });
+
+    // 5) Manual Infinite scroll demo
+    new StreamGrid('#infinite-grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: ['name', 'email', 'status', 'department', 'city'],
+      pagination: true,
+      paginationMode: 'infinite',
+      pageSize: 20,
+      infiniteScrollTriggerDistance: 150,
+      infiniteScrollPageSize: 20
+    });
+
+    // 6) Events demo
+    const eventGrid = new StreamGrid('#event-grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: ['name', 'email', 'status', 'department', 'city'],
+      pagination: true,
+      paginationMode: 'pages',
+      pageSize: 15,
+      filters: ['name', 'email', 'department', 'city']
+    });
+    eventGrid.on('dataRowClicked', row =>
+      console.log('[Demo] dataRowClicked', row)
+    );
+    eventGrid.on('cellClicked', info =>
+      console.log('[Demo] cellClicked', info)
+    );
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,150 @@
+/* src/streamgrid.css */
+
+/* ── Grid container ──────────────────────────────────────── */
+.grid-container {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  margin-top: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Grid element polish ────────────────────────────────── */
+.grid-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.grid-container thead th {
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.grid-container tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.grid-container tbody tr:hover {
+  background: #f8fafc;
+}
+
+.grid-container tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Filter input polish ────────────────────────────────── */
+.grid-container .sg-controls input[type="text"] {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.grid-container .sg-controls input[type="text"]:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.grid-container .sg-controls input[type="text"]::placeholder {
+  color: #94a3b8;
+}
+
+/* ── Pagination controls ────────────────────────────────── */
+.pagination-controls {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+}
+
+.pagination-controls.sg-pagination-numbers {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sg-nav-start,
+.sg-nav-end {
+  display: flex;
+  gap: 4px;
+}
+
+.sg-nav-pages {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pagination-controls button {
+  margin: 0 4px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pagination-controls button:hover:not(.disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.pagination-controls button.active-page {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+  font-weight: 600;
+}
+
+.pagination-controls button.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-controls select,
+.pagination-controls input[type="number"] {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s;
+  outline: none;
+}
+
+.pagination-controls select:hover,
+.pagination-controls input[type="number"]:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.pagination-controls select:focus,
+.pagination-controls input[type="number"]:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}

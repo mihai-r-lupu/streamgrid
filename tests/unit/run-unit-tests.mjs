@@ -1,0 +1,12 @@
+import './DataSet.test.js';
+import './StreamGrid.test.js';
+import './RestApiAdapter.test.js';
+import './StreamGrid.mockdata.test.js';
+import './StreamGrid.plugin.test.js';
+import './StreamGrid.adapter.test.js';
+import './HookManager.test.js';
+import './EventEmitter.test.js';
+import './StreamGrid.events.test.js';
+import './filterEngine.test.js';
+import './StreamGrid.filtermode.test.js';
+import './paginator.test.js';
