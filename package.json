@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mihai-r-lupu/stream-grid.git"
+    "url": "https://github.com/mihai-r-lupu/streamgrid.git"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",

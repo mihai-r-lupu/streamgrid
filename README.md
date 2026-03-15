@@ -8,7 +8,7 @@ StreamGrid is a lightweight, zero-dependency JavaScript data table library writt
 
 ## Live Demo
 
-[**Try StreamGrid →**](https://mihai-r-lupu.github.io/stream-grid/docs/index.html)
+[**Try StreamGrid →**](https://mihai-r-lupu.github.io/streamgrid/docs/index.html)
 
 ---
 
@@ -30,8 +30,8 @@ StreamGrid
 Clone the repository and install dev dependencies:
 
 ```bash
-git clone https://github.com/mihai-r-lupu/stream-grid.git
-cd stream-grid
+git clone https://github.com/mihai-r-lupu/streamgrid.git
+cd streamgrid
 npm install
 ```
 
