@@ -1,6 +1,6 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-77%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-85%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
@@ -17,7 +17,7 @@ StreamGrid is a lightweight, zero-dependency JavaScript data table library writt
 
 ```
 StreamGrid
-├── dataAdapter (BaseDataAdapter / RestApiAdapter)
+├── dataAdapter (BaseDataAdapter / RestApiAdapter / CacheAdapter)
 ├── DataSet → filterEngine.js
 ├── EventEmitter  (lifecycle events)
 ├── HookManager   (WordPress-style hooks)
@@ -240,7 +240,7 @@ Plugins are initialised after data is loaded, so `grid.dataSet` is populated whe
 
 ## Custom Adapters
 
-Extend `BaseDataAdapter` and implement its five methods to connect StreamGrid to any backend.
+The adapter contract is duck-typed: any object that implements the five methods (`getColumns`, `fetchData`, `insertRow`, `updateRow`, `deleteRow`) is a valid adapter. Extending `BaseDataAdapter` is optional — it provides convenience stubs and self-documenting errors, but is not required.
 
 ```js
 import { BaseDataAdapter } from './src/dataAdapter/BaseDataAdapter.js';
@@ -266,7 +266,20 @@ import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
 const adapter = new RestApiAdapter({ baseUrl: 'https://api.example.com' });
 ```
 
-`RestApiAdapter` automatically fetches one row (`?_limit=1`) and infers column names from its keys.  No dedicated `/columns` endpoint is required.
+`RestApiAdapter` automatically fetches one row (`?_limit=1`) and infers column names from its keys. No dedicated `/columns` endpoint is required.
+
+To add transparent caching to any adapter, wrap it with `CacheAdapter`:
+
+```js
+import { CacheAdapter } from './src/dataAdapter/CacheAdapter.js';
+
+const adapter = new CacheAdapter(
+    new RestApiAdapter({ baseUrl: 'https://api.example.com' }),
+    { ttl: 30000 }
+);
+```
+
+See [docs/Adapters.md](docs/Adapters.md) for full `CacheAdapter` options.
 
 ---
 

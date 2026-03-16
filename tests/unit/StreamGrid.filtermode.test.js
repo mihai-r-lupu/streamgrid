@@ -25,7 +25,10 @@ describe('StreamGrid - Auto Filter Mode Switching', () => {
             async fetchData() {
                 fetchDataCallCount++;
                 return Array.from({ length: 4 }, (_, i) => ({ name: `User ${i}` }));
-            }
+            },
+            async insertRow(table, data) { return data; },
+            async updateRow(table, id, data) { return data; },
+            async deleteRow(table, id) { return true; }
         };
 
         const grid = new StreamGrid('#grid', {
@@ -53,7 +56,10 @@ describe('StreamGrid - Auto Filter Mode Switching', () => {
             async fetchData() {
                 fetchDataCallCount++;
                 return Array.from({ length: 3 }, (_, i) => ({ name: `User ${i}` }));
-            }
+            },
+            async insertRow(table, data) { return data; },
+            async updateRow(table, id, data) { return data; },
+            async deleteRow(table, id) { return true; }
         };
 
         const grid = new StreamGrid('#grid', {

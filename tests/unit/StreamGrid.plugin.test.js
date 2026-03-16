@@ -31,7 +31,10 @@ describe('StreamGrid - Plugin System', () => {
         const grid = new StreamGrid('#grid', {
             dataAdapter: {
                 async getColumns() { return ['name']; },
-                async fetchData() { return [{ name: 'Test' }]; }
+                async fetchData() { return [{ name: 'Test' }]; },
+                async insertRow(table, data) { return data; },
+                async updateRow(table, id, data) { return data; },
+                async deleteRow(table, id) { return true; }
             },
             table: 'users',
             columns: ['name'],

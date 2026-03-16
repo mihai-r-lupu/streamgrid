@@ -10,3 +10,4 @@ import './StreamGrid.events.test.js';
 import './filterEngine.test.js';
 import './StreamGrid.filtermode.test.js';
 import './paginator.test.js';
+import './CacheAdapter.test.js';

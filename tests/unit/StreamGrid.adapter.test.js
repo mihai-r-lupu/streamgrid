@@ -22,7 +22,7 @@ describe('StreamGrid - Adapter Usage', () => {
         const mockAdapter = {
             columnsCalled: false,
             dataCalled: false,
-    
+
             async getColumns(table) {
                 this.columnsCalled = true;
                 return ['name'];
@@ -30,19 +30,22 @@ describe('StreamGrid - Adapter Usage', () => {
             async fetchData(table) {
                 this.dataCalled = true;
                 return [{ name: 'Test' }];
-            }
+            },
+            async insertRow(table, data) { return data; },
+            async updateRow(table, id, data) { return data; },
+            async deleteRow(table, id) { return true; }
         };
-    
+
         const grid = new StreamGrid('#grid', {
             dataAdapter: mockAdapter,
             table: 'users',
             columns: []
         });
-    
+
         await grid.init();
-    
+
         expect(mockAdapter.columnsCalled).to.be.true;
         expect(mockAdapter.dataCalled).to.be.true;
-    });    
-    
+    });
+
 });

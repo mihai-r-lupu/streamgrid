@@ -3,6 +3,14 @@ import { JSDOM } from 'jsdom';
 import { DataSet } from '../../src/DataSet.js';
 import { StreamGrid } from '../../src/StreamGrid.js';
 
+const MOCK_ADAPTER = {
+    getColumns: async () => [],
+    fetchData: async () => [],
+    insertRow: async () => ({}),
+    updateRow: async () => ({}),
+    deleteRow: async () => true
+};
+
 describe('DataSet', () => {
 
     beforeEach(() => {
@@ -10,13 +18,13 @@ describe('DataSet', () => {
         global.window = dom.window;
         global.document = dom.window.document;
     });
-    
+
     afterEach(() => {
         global.window.close();
         delete global.window;
         delete global.document;
     });
-    
+
     it('should insert a row', () => {
         const ds = new DataSet();
         ds.insert({ id: 1, name: 'John' });
@@ -51,18 +59,18 @@ describe('DataSet', () => {
         const grid = new StreamGrid('#dummy', {
             filterMode: 'auto',
             clientFilterThreshold: 2,
-            dataAdapter: {},
+            dataAdapter: MOCK_ADAPTER,
             table: 'dummy',
             columns: []
         });
         grid.dataSet.data = [{}, {}, {}];
         expect(grid.shouldUseServerFiltering()).to.be.true;
-    
+
         grid.filterMode = 'client';
         expect(grid.shouldUseServerFiltering()).to.be.false;
-    
+
         grid.filterMode = 'server';
         expect(grid.shouldUseServerFiltering()).to.be.true;
     });
-    
+
 });
