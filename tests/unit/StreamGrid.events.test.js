@@ -28,6 +28,9 @@ describe('StreamGrid - Core Events', () => {
                 { name: 'Bob', email: 'bob@example.com', status: 'inactive' }
             ];
         }
+        async insertRow(table, data) { return data; }
+        async updateRow(table, id, data) { return data; }
+        async deleteRow(table, id) { return true; }
     }
 
     it('should fire tableRendered and dataLoaded events after init', async () => {

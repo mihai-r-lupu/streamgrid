@@ -32,6 +32,9 @@ describe('StreamGrid - Mock Data Filtering and Paging', () => {
                 { name: 'Eve', email: 'eve@example.com', status: 'active' }
             ];
         }
+        async insertRow(table, data) { return data; }
+        async updateRow(table, id, data) { return data; }
+        async deleteRow(table, id) { return true; }
     }
 
     it('should render correct number of rows per page (pages mode)', async () => {

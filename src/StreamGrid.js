@@ -44,6 +44,7 @@ export class StreamGrid {
 
         // Core configuration
         this.dataAdapter = options.dataAdapter;
+        this._validateAdapter(this.dataAdapter);
         this.table = options.table;
         this.columns = options.columns || [];
         this.filters = options.filters || [];
@@ -421,4 +422,21 @@ export class StreamGrid {
      * @returns {*} The transformed value.
      */
     applyFilters(name, value, ...args) { return this.hooks.applyFilters(name, value, ...args); }
+
+    /**
+     * Validates that the provided adapter implements all required methods.
+     * Throws a descriptive Error on failure. Called once at construction time.
+     * @param {object} adapter
+     */
+    _validateAdapter(adapter) {
+        const required = ['getColumns', 'fetchData', 'insertRow', 'updateRow', 'deleteRow'];
+        for (const method of required) {
+            if (typeof adapter[method] !== 'function') {
+                throw new Error(
+                    `StreamGrid: dataAdapter is missing required method "${method}".\n` +
+                    `Adapters must implement: getColumns, fetchData, insertRow, updateRow, deleteRow.`
+                );
+            }
+        }
+    }
 }
