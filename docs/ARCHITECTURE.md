@@ -53,3 +53,17 @@ Both are needed. Hooks let plugins modify the grid's internal pipeline; events l
 - **No sorting UI.** The adapter pattern means consumers can pass pre-sorted data from the server, or add sort parameters to their adapter's query config. A built-in sort UI would expand scope without demonstrating a new concept.
 
 - **No virtual scrolling.** Pagination and infinite scroll cover the same performance use case more simply. Virtual scrolling adds DOM recycling complexity that is only justified at 100K+ row counts — a tier that should use server-side pagination anyway.
+
+---
+
+## Serialisable Public API
+
+`exportConfig()` returns a plain object that passes `JSON.stringify` cleanly and can be spread back into the `StreamGrid` constructor to reconstruct an identical grid. This is an intentional design constraint, not an afterthought: every constructor option is stored in a form that survives a JSON round-trip.
+
+Two pairs of decisions enforce this:
+
+1. `scrollContainer` stores both the resolved DOM element (`this.scrollContainer`) for runtime use and the original selector string (`this._scrollContainerSelector`) for export. Throwing away the original selector string would make full reconstruction impossible for infinite-scroll grids.
+
+2. `exportConfig()` explicitly strips function-valued column properties (e.g. `render`) before the JSON round-trip, rather than letting `JSON.stringify` silently discard them. The omission is intentional and documented — consumers who use column render callbacks are expected to re-attach them by merging on `col.field` after restoration.
+
+A `version` field (`1`) is included in every snapshot so that future schema changes can be detected at construction time and rejected with a descriptive error before any DOM side effects occur.

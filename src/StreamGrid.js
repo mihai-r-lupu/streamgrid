@@ -42,6 +42,11 @@ export class StreamGrid {
         this.container = document.querySelector(containerSelector);
         if (!this.container) throw new Error('Invalid container selector');
 
+        // Reject snapshots from future versions before any side effects
+        if (options.version != null && options.version > 1) {
+            throw new Error(`Config snapshot version ${options.version} is not supported by this version of StreamGrid (max: 1).`);
+        }
+
         // Core configuration
         this.dataAdapter = options.dataAdapter;
         this._validateAdapter(this.dataAdapter);
@@ -62,6 +67,7 @@ export class StreamGrid {
 
         // Infinite scroll settings
         this.scrollContainer = options.scrollContainer ? document.querySelector(options.scrollContainer) : null;
+        this._scrollContainerSelector = options.scrollContainer || null;
         this.infiniteScrollTriggerDistance = options.infiniteScrollTriggerDistance || 100;
         this.infiniteScrollPageSize = options.infiniteScrollPageSize || this.pageSize;
         this.infiniteScrollTotalLimit = options.infiniteScrollTotalLimit;
@@ -69,12 +75,12 @@ export class StreamGrid {
         // Filtering state
         this.filterDebounceTime = options.filterDebounceTime ?? 300;
         this.filterCaseSensitive = options.filterCaseSensitive || false;
-        this.currentFilterText = '';
+        this.currentFilterText = options.currentFilterText || '';
         this.filterMode = options.filterMode || 'auto'; // 'auto' | 'client' | 'server'
         this.clientFilterThreshold = options.clientFilterThreshold || 1000;
 
         // State for paging
-        this.currentPage = 1;
+        this.currentPage = options.currentPage || 1;
         this.totalLoadedRows = 0;
 
         // Hooks and events
@@ -148,6 +154,7 @@ export class StreamGrid {
             this.filterInput = document.createElement('input');
             this.filterInput.type = 'text';
             this.filterInput.placeholder = 'Filter...';
+            if (this.currentFilterText) this.filterInput.value = this.currentFilterText;
             this.controlsContainer.appendChild(this.filterInput);
         }
 
@@ -332,6 +339,68 @@ export class StreamGrid {
         this.currentPage = pageNum;
         this.renderBody();
         this.emit('paginationChanged', { currentPage: this.currentPage, totalRows: this.getFilteredRows().length });
+    }
+
+    /**
+     * Returns a plain serialisable snapshot of the current grid configuration and
+     * live state. Suitable for `JSON.stringify`, `localStorage`, and session restore.
+     *
+     * The returned object can be spread into the `StreamGrid` constructor to
+     * reconstruct an equivalent grid — the caller must re-supply `dataAdapter`
+     * since adapter instances are not serialisable.
+     *
+     * Column `render` callbacks are stripped from the exported column objects.
+     * To restore them, merge the snapshot columns with your column definitions:
+     *
+     * ```js
+     * const snapshot = grid.exportConfig();
+     * const restoredColumns = snapshot.columns.map(col => ({
+     *     ...col,
+     *     ...myColumnRenders[col.field]   // re-attach render functions by field name
+     * }));
+     * new StreamGrid(el, { ...snapshot, dataAdapter: myAdapter, columns: restoredColumns });
+     * ```
+     *
+     * @returns {{version:number, table:string, columns:object[], filters:string[],
+     *   pagination:boolean, paginationMode:string, pageSize:number,
+     *   paginationFirstLastButtons:boolean, paginationPrevNextText:object,
+     *   paginationFirstLastText:object, paginationOptions:object,
+     *   scrollContainer:string|null, infiniteScrollTriggerDistance:number,
+     *   infiniteScrollPageSize:number, infiniteScrollTotalLimit:number|null,
+     *   filterDebounceTime:number, filterCaseSensitive:boolean, filterMode:string,
+     *   clientFilterThreshold:number, loadDefaultCss:boolean,
+     *   currentPage:number, currentFilterText:string}}
+     */
+    exportConfig() {
+        const result = {
+            version: 1,
+            table: this.table,
+            columns: this.columns.map(col =>
+                typeof col === 'string'
+                    ? col
+                    : Object.fromEntries(Object.entries(col).filter(([, v]) => typeof v !== 'function'))
+            ),
+            filters: [...this.filters],
+            pagination: this.pagination,
+            paginationMode: this.paginationMode,
+            pageSize: this.pageSize,
+            paginationFirstLastButtons: this.paginationFirstLastButtons,
+            paginationPrevNextText: this.paginationPrevNextText,
+            paginationFirstLastText: this.paginationFirstLastText,
+            paginationOptions: this.paginationOptions,
+            scrollContainer: this._scrollContainerSelector,
+            infiniteScrollTriggerDistance: this.infiniteScrollTriggerDistance,
+            infiniteScrollPageSize: this.infiniteScrollPageSize,
+            infiniteScrollTotalLimit: this.infiniteScrollTotalLimit ?? null,
+            filterDebounceTime: this.filterDebounceTime,
+            filterCaseSensitive: this.filterCaseSensitive,
+            filterMode: this.filterMode,
+            clientFilterThreshold: this.clientFilterThreshold,
+            loadDefaultCss: this.loadDefaultCss,
+            currentPage: this.currentPage,
+            currentFilterText: this.currentFilterText,
+        };
+        return JSON.parse(JSON.stringify(result));
     }
 
     /**

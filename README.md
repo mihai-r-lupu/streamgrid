@@ -1,6 +1,6 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-85%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-100%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
@@ -98,6 +98,26 @@ npm run demo   # starts json-server and opens the demo page
 | `filterMode` | `'auto' \| 'client' \| 'server'` | `'auto'` | Filtering strategy (see [Filter Modes](#filter-modes)). |
 | `clientFilterThreshold` | `number` | `1000` | Row count above which `auto` mode switches to server filtering. |
 | `loadDefaultCss` | `boolean` | `true` | Auto-inject the bundled `streamgrid.css`. |
+| `currentPage` | `number` | `1` | Initial page to render. Restored automatically when spreading an `exportConfig()` snapshot. |
+| `currentFilterText` | `string` | `''` | Initial filter text. Restored automatically when spreading an `exportConfig()` snapshot. Meaningful only when `filters` is also set. |
+
+---
+
+## Public Methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `init()` | `Promise<void>` | Loads columns and data, initialises plugins, then renders. Called automatically in the constructor; call again to hard-refresh. |
+| `goToPage(pageNum)` | `void` | Navigates to a 1-based page number and re-renders. |
+| `loadMoreRows()` | `Promise<void>` | Appends the next batch in infinite-scroll mode. |
+| `getFilteredRows()` | `object[]` | Returns the current filtered row set from the in-memory DataSet. |
+| `exportConfig()` | `object` | Returns a plain serialisable snapshot of all config and live state. See [Saving and Restoring Grid State](docs/GettingStarted.md#saving-and-restoring-grid-state). |
+| `on(event, fn)` | `void` | Subscribe to a lifecycle event. |
+| `off(event, fn)` | `void` | Unsubscribe from a lifecycle event. |
+| `addAction(name, fn)` | `void` | Register a hook action. |
+| `addFilter(name, fn)` | `void` | Register a hook filter. |
+| `doAction(name, data)` | `void` | Fire a hook action. |
+| `applyFilters(name, value)` | `any` | Apply all registered hook filters to a value. |
 
 ---
 
