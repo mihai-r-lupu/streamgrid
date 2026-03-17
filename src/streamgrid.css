@@ -148,3 +148,78 @@
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
+
+/* ── Loading shimmer ─────────────────────────────────────── */
+
+/*
+ * Design rationale:
+ * - The skeleton bar is a ::after pseudo inset 8px from top/bottom and 12px
+ *   from sides — identical to the cell's text padding. This keeps the bars
+ *   properly separated by natural row whitespace, matching how real content rows
+ *   look.
+ * - The bar's own gradient always has tonal variation at both endpoints (never
+ *   a flat solid), so it never looks like a blank rectangle — even before the
+ *   first sweep arrives.
+ * - background-size: 300% means the bright peak at gradient 50% only enters
+ *   the visible window mid-animation, travels across, then exits. Both 0% and
+ *   100% background-position show only the darker endpoints.
+ * - The 3s cycle with the sweep completing at 55% gives a generous 1.35s rest
+ *   before the next pass — the "breathing" rhythm that reads as organic.
+ */
+@keyframes sg-shimmer {
+  0%   { background-position: 100% center; }
+  55%  { background-position:   0% center; }
+  100% { background-position:   0% center; }
+}
+
+@keyframes sg-row-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.sg-loading-row {
+  animation: sg-row-enter 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.sg-loading-row:nth-child(1) { animation-delay: 0s;    }
+.sg-loading-row:nth-child(2) { animation-delay: 0.07s; }
+.sg-loading-row:nth-child(3) { animation-delay: 0.14s; }
+.sg-loading-row:nth-child(4) { animation-delay: 0.21s; }
+.sg-loading-row:nth-child(5) { animation-delay: 0.28s; }
+
+.sg-loading-row td {
+  position: relative;
+  padding: 0;
+  height: 44px;
+  background: transparent;
+  border-bottom: 1px solid #f1f5f9; /* matches normal tbody td */
+}
+
+.sg-loading-row td::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 12px;
+  right: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    #dde3ec  0%,
+    #dde3ec 30%,
+    #ecf1f8 50%,
+    #dde3ec 70%,
+    #dde3ec 100%
+  );
+  background-size: 300% 100%;
+  animation: sg-shimmer 2s ease-in-out infinite;
+  animation-delay: var(--shimmer-delay, 0s);
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.sg-empty-row td {
+  padding: 32px 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  border-bottom: none;
+}

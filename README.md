@@ -98,6 +98,8 @@ npm run demo   # starts json-server and opens the demo page
 | `filterMode` | `'auto' \| 'client' \| 'server'` | `'auto'` | Filtering strategy (see [Filter Modes](#filter-modes)). |
 | `clientFilterThreshold` | `number` | `1000` | Row count above which `auto` mode switches to server filtering. |
 | `loadDefaultCss` | `boolean` | `true` | Auto-inject the bundled `streamgrid.css`. |
+| `loadingText` | `string \| Function` | `'Loading…'` | Text shown in the shimmer skeleton while data loads. Pass `() => string \| HTMLElement` for rich content. |
+| `emptyText` | `string \| Function` | `'No results'` | Text shown when the filtered result set is empty. Pass `() => string \| HTMLElement` for rich content. |
 | `currentPage` | `number` | `1` | Initial page to render. Restored automatically when spreading an `exportConfig()` snapshot. |
 | `currentFilterText` | `string` | `''` | Initial filter text. Restored automatically when spreading an `exportConfig()` snapshot. Meaningful only when `filters` is also set. |
 
@@ -107,7 +109,8 @@ npm run demo   # starts json-server and opens the demo page
 
 | Method | Returns | Description |
 |---|---|---|
-| `init()` | `Promise<void>` | Loads columns and data, initialises plugins, then renders. Called automatically in the constructor; call again to hard-refresh. |
+| `init()` | `Promise<void>` | Loads columns and data, initialises plugins, then renders. Called automatically in the constructor; call again to hard-refresh. Emits `loading` then shows shimmer rows before any network requests. |
+| `showLoading()` | `void` | Renders shimmer skeleton rows immediately. Called automatically by `init()`; can be called externally before a manual data refresh. |
 | `goToPage(pageNum)` | `void` | Navigates to a 1-based page number and re-renders. |
 | `loadMoreRows()` | `Promise<void>` | Appends the next batch in infinite-scroll mode. |
 | `getFilteredRows()` | `object[]` | Returns the current filtered row set from the in-memory DataSet. |
@@ -189,6 +192,7 @@ Subscribe to lifecycle events with `grid.on(eventName, callback)`.
 
 | Event | Payload | When |
 |---|---|---|
+| `loading` | — | At the start of `init()`, before any network requests. Useful for disabling external buttons or showing a progress indicator. |
 | `dataLoaded` | `row[]` | After data is fetched from the adapter. |
 | `tableRendered` | `gridInstance` | After the table body is re-rendered. |
 | `filterApplied` | `{filterText, totalFilteredRows}` | After a filter operation completes. |
@@ -198,6 +202,8 @@ Subscribe to lifecycle events with `grid.on(eventName, callback)`.
 | `headerClicked` | `{columnField}` | When a `<th>` is clicked. |
 | `headerRowClicked` | — | When the `<thead>` row is clicked. |
 | `tableClicked` | `MouseEvent` | When anything inside the table is clicked. |
+
+> **Note:** `cellClicked`, `dataRowClicked`, and related events are not emitted for shimmer or empty-state rows — only for actual data rows.
 
 ```js
 grid.on('dataRowClicked', row => console.log('Row clicked:', row));

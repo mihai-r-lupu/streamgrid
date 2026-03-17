@@ -34,6 +34,12 @@
                 This grid uses <code>filterMode: 'auto'</code> with <code>clientFilterThreshold: 100</code>.
                 Since 500 rows are loaded, filtering is handled server-side through the adapter.
             </p>
+            <div class="demo-toolbar">
+                <button id="demo-shimmer-btn">Show shimmer</button>
+                <button id="demo-empty-btn">Show empty state</button>
+                <button id="demo-reset-btn">Reset</button>
+                <span class="badge-info">Loading &amp; empty state demo</span>
+            </div>
             <div id="pages-demo" class="grid-container"></div>
         </section>
 
@@ -167,6 +173,17 @@
             filterMode: 'auto',
             clientFilterThreshold: 100,
             loadDefaultCss: false,
+        });
+
+        // ── Loading / empty state demo buttons ────────────────────────────────
+        document.getElementById('demo-shimmer-btn').addEventListener('click', () => {
+            grid1.showLoading();
+        });
+        document.getElementById('demo-empty-btn').addEventListener('click', () => {
+            grid1.showEmpty();
+        });
+        document.getElementById('demo-reset-btn').addEventListener('click', () => {
+            grid1.init();
         });
 
         // ── Filter mode indicator ────────────────────────────────────────────────

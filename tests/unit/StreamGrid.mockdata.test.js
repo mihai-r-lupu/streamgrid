@@ -193,7 +193,7 @@ describe('StreamGrid - Mock Data Filtering and Paging', () => {
 
         await new Promise(resolve => setTimeout(resolve, 50)); // longer timeout
 
-        rows = container.querySelectorAll('tbody tr');
+        rows = container.querySelectorAll('tbody tr:not(.sg-empty-row)');
         expect(rows.length).to.equal(0); // ✅ No match if case sensitive
     });
 

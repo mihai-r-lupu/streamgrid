@@ -32,8 +32,12 @@
 
     <!-- 1) Default Grid for E2E (Infinite + Filters) -->
     <section id="default-e2e-test">
-      <h2>Default Grid (<code>#grid</code>) — Infinite + Filters</h2>
-      <div id="grid" class="grid-container"></div>
+      <h2>Default Grid (<code>#grid</code>) — Infinite + Filters</h2>      <div class="demo-toolbar">
+        <button id="demo-shimmer-btn">Show shimmer</button>
+        <button id="demo-empty-btn">Show empty state</button>
+        <button id="demo-reset-btn">Reset</button>
+        <span class="badge-info">Loading &amp; empty state demo</span>
+      </div>      <div id="grid" class="grid-container"></div>
     </section>
 
     <!-- 2) Classic Pages Mode -->
@@ -117,6 +121,18 @@
       filterCaseSensitive: false,
       infiniteScrollTriggerDistance: 150,
       infiniteScrollPageSize: 10
+    });
+
+    // Loading / empty state demo buttons
+    document.getElementById('demo-shimmer-btn').addEventListener('click', () => {
+      window.grid.showLoading();
+    });
+    document.getElementById('demo-empty-btn').addEventListener('click', () => {
+      window.grid.showEmpty();
+    });
+    document.getElementById('demo-reset-btn').addEventListener('click', () => {
+      window.grid.filterInput.value = '';
+      window.grid.init();
     });
 
     // E2E specs listen for these console logs:

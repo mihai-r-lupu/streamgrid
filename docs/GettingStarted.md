@@ -60,6 +60,63 @@ This renders a table inside `#example-container`, fetching data from the REST AP
 | `pagination` | `true` | Pagination enabled |
 | `paginationMode` | `'pages'` | Prev/Next buttons |
 | `loadDefaultCss` | `true` | Auto-injects `streamgrid.css` |
+| `loadingText` | `'Loading\u2026'` | Shimmer placeholder text (or pass a function) |
+| `emptyText` | `'No results'` | Empty-state message (or pass a function) |
+
+---
+
+## Loading State and Empty State
+
+StreamGrid automatically shows a shimmer skeleton while data is loading, then shows an empty-state row when no results match the current filter.
+
+### Customising the messages
+
+Both options accept a plain string or a zero-argument function that returns a string or an `HTMLElement`:
+
+```js
+const grid = new StreamGrid('#grid', {
+    dataAdapter: adapter,
+    table: 'users',
+    // Plain string (default)
+    emptyText: 'No users found',
+
+    // Or a function returning a string
+    emptyText: () => `<em>No users match your search</em>`,
+
+    // Or a function returning a DOM node
+    emptyText: () => {
+        const el = document.createElement('span');
+        el.textContent = 'No results — try a different filter';
+        return el;
+    },
+});
+```
+
+> **Security note:** When `emptyText` returns an HTML string, it is set via `innerHTML`. If you include user-supplied content in the string, escape it first.
+
+### Triggering the loading state manually
+
+`showLoading()` is public — call it before any manual data refresh to show the shimmer immediately:
+
+```js
+document.querySelector('#refresh').addEventListener('click', async () => {
+    grid.showLoading();
+    await grid.init();
+});
+```
+
+### Listening for the `loading` event
+
+The `loading` event fires at the very start of `init()`, before any network requests. Use it to disable UI controls while the grid is fetching:
+
+```js
+grid.on('loading', () => {
+    document.querySelector('#refresh').disabled = true;
+});
+grid.on('tableRendered', () => {
+    document.querySelector('#refresh').disabled = false;
+});
+```
 
 ---
 

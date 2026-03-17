@@ -35,6 +35,8 @@ import { renderNumberedPagination } from './core/pagination/paginationHelpers.js
  * @param {'auto'|'client'|'server'} [options.filterMode='auto'] - Filtering mode.
  * @param {number} [options.clientFilterThreshold=1000] - Row count above which auto mode switches to server filtering.
  * @param {boolean} [options.loadDefaultCss=true] - Auto-inject the bundled `streamgrid.css`.
+ * @param {string|Function} [options.loadingText='Loading\u2026'] - Text or `() => string | HTMLElement` shown while data is loading.
+ * @param {string|Function} [options.emptyText='No results'] - Text or `() => string | HTMLElement` shown when the filtered result set is empty.
  */
 export class StreamGrid {
     constructor(containerSelector, options) {
@@ -83,6 +85,10 @@ export class StreamGrid {
         this.currentPage = options.currentPage || 1;
         this.totalLoadedRows = 0;
 
+        // Loading and empty state text (string or () => string | HTMLElement)
+        this.loadingText = options.loadingText ?? 'Loading…';
+        this.emptyText = options.emptyText ?? 'No results';
+
         // Hooks and events
         this.hooks = new HookManager();
         this.events = new EventEmitter();
@@ -107,6 +113,8 @@ export class StreamGrid {
      * @returns {Promise<void>}
      */
     async init() {
+        this.emit('loading');
+        this.showLoading();
         await this.loadColumns();
         await this.loadData();
         this.plugins.forEach(plugin => plugin.init?.(this));
@@ -236,6 +244,9 @@ export class StreamGrid {
         const th = target.closest('th');
         const td = target.closest('td');
 
+        // Synthetic rows carry no data — skip all data-event logic
+        if (tr?.classList.contains('sg-empty-row') || tr?.classList.contains('sg-loading-row')) return;
+
         // Custom selectors first
         this.customClickHandlers.forEach(handler => {
             if (target.closest(handler.selector)) {
@@ -266,6 +277,50 @@ export class StreamGrid {
         this.emit('tableClicked', event);
     }
 
+    /**
+     * Renders shimmer skeleton rows into the table body to indicate a loading state.
+     * Uses `colspan="999"` when column count is not yet known so the placeholder cell
+     * always fills the full table width regardless of the final column count.
+     * Called automatically at the start of `init()`; may also be called externally
+     * to signal a pending refresh.
+     */
+    showLoading() {
+        const colCount = this.columns.length || 999;
+        const rowCount = Math.min(this.pageSize, 5);
+        this.tbodyElement.setAttribute('data-sg-state', 'loading');
+        this.tbodyElement.innerHTML = '';
+        for (let i = 0; i < rowCount; i++) {
+            const tr = document.createElement('tr');
+            tr.className = 'sg-loading-row';
+            const td = document.createElement('td');
+            td.colSpan = colCount;
+            td.style.setProperty('--shimmer-delay', `${i * 0.15}s`);
+            tr.appendChild(td);
+            this.tbodyElement.appendChild(tr);
+        }
+    }
+
+    /**
+     * Renders the empty state row. Useful for programmatically displaying the
+     * "no data" message without triggering a filter or data reload.
+     */
+    showEmpty() {
+        this.tbodyElement.removeAttribute('data-sg-state');
+        this.tbodyElement.innerHTML = '';
+        const tr = document.createElement('tr');
+        tr.className = 'sg-empty-row';
+        const td = document.createElement('td');
+        td.colSpan = this.columns.length || 1;
+        if (typeof this.emptyText === 'function') {
+            const content = this.emptyText();
+            typeof content === 'string' ? (td.innerHTML = content) : td.appendChild(content);
+        } else {
+            td.textContent = this.emptyText;
+        }
+        tr.appendChild(td);
+        this.tbodyElement.appendChild(tr);
+    }
+
     /** Re-renders the table body and pagination controls for the current page/filter state. */
     renderBody() {
         const allRows = this.getFilteredRows();
@@ -279,7 +334,27 @@ export class StreamGrid {
             ? this.scrollContainer.scrollTop
             : 0;
 
+        this.tbodyElement.removeAttribute('data-sg-state');
         this.tbodyElement.innerHTML = '';
+
+        if (rowsToShow.length === 0) {
+            const tr = document.createElement('tr');
+            tr.className = 'sg-empty-row';
+            const td = document.createElement('td');
+            td.colSpan = this.columns.length || 1;
+            if (typeof this.emptyText === 'function') {
+                const content = this.emptyText();
+                typeof content === 'string' ? (td.innerHTML = content) : td.appendChild(content);
+            } else {
+                td.textContent = this.emptyText;
+            }
+            tr.appendChild(td);
+            this.tbodyElement.appendChild(tr);
+            this.renderPagination(0);
+            this.emit('tableRendered', this);
+            return;
+        }
+
         rowsToShow.forEach(row => {
             const tr = document.createElement('tr');
             this.columns.forEach(col => {
@@ -399,6 +474,8 @@ export class StreamGrid {
             loadDefaultCss: this.loadDefaultCss,
             currentPage: this.currentPage,
             currentFilterText: this.currentFilterText,
+            loadingText: typeof this.loadingText === 'function' ? undefined : this.loadingText,
+            emptyText: typeof this.emptyText === 'function' ? undefined : this.emptyText,
         };
         return JSON.parse(JSON.stringify(result));
     }

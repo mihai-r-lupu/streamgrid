@@ -69,6 +69,9 @@ class CsvExportPlugin {
 | Phase | What happens |
 |---|---|
 | Construction | `plugins` array is stored |
+| `init()` called | `loading` event fires, shimmer rows appear |
 | After first data load | `plugin.init(grid)` is called for each plugin |
 | Live operation | Plugins react to events, extend UI, modify grid behaviour |
+
+> `plugin.init(grid)` is called **after** data loads and the table renders — `grid.dataSet` is already populated. To run logic before data loads, listen to the `loading` event from inside `init()`.
 

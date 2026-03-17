@@ -8,15 +8,18 @@ Subscribe to lifecycle events with `grid.on(eventName, callback)`. Multiple hand
 
 | Event | When It Fires | Payload |
 |:---|:---|:---|
+| `loading` | At the start of `init()`, before any network requests | `()` |
 | `tableRendered` | After the table body is inserted into the DOM | `(gridInstance)` |
 | `dataLoaded` | After data is fetched from the adapter | `(fullDataArray)` |
 | `filterApplied` | After a filter operation completes | `{ filterText, totalFilteredRows }` |
 | `paginationChanged` | When the user changes page | `{ currentPage, totalRows }` |
-| `dataRowClicked` | When a `<tbody>` row is clicked | `(rowData)` |
-| `cellClicked` | When a `<td>` is clicked | `{ rowData, columnField }` |
+| `dataRowClicked` | When a `<tbody>` data row is clicked | `(rowData)` |
+| `cellClicked` | When a `<td>` in a data row is clicked | `{ rowData, columnField }` |
 | `headerClicked` | When a `<th>` is clicked | `{ columnField }` |
 | `headerRowClicked` | When the `<thead>` row is clicked | `()` |
 | `tableClicked` | When anything inside the table is clicked | `(originalClickEvent)` |
+
+> **Note:** `cellClicked`, `dataRowClicked`, and `tableClicked` are **not** emitted when clicking shimmer (loading) or empty-state rows.
 
 ---
 
@@ -49,13 +52,14 @@ grid.on('paginationChanged', ({ currentPage, totalRows }) => {
 During a typical page load and user interaction, events fire in this order:
 
 ```
-1. dataLoaded
-2. tableRendered
+1. loading          ← init() starts, shimmer rows appear
+2. dataLoaded       ← data fetched from adapter
+3. tableRendered    ← rows (or empty state) painted
 ---
-3. (User types in filter) -> filterApplied
-4. (User clicks page button) -> paginationChanged
-5. (User clicks a cell) -> cellClicked, dataRowClicked, tableClicked
-6. (User clicks header cell) -> headerClicked, headerRowClicked, tableClicked
+4. (User types in filter) -> filterApplied
+5. (User clicks page button) -> paginationChanged
+6. (User clicks a cell) -> cellClicked, dataRowClicked, tableClicked
+7. (User clicks header cell) -> headerClicked, headerRowClicked, tableClicked
 ```
 
 ---
