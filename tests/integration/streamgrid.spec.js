@@ -88,74 +88,346 @@ test.describe('StreamGrid E2E', () => {
     expect(rowsClient).toBe(rowsServer); // Results should match between client/server
   });
 
-  // ── CacheAdapter demo (#cache-grid) ─────────────────────────────────────────
+  // ── CacheAdapter demo (#cache-grid) — comprehensive caching tests ───────────
+  //
+  // Architecture note:
+  //   Only init() → loadData() → fetchData() goes through the CacheAdapter.
+  //   goToPage(N) is a pure re-render of the existing in-memory dataSet and
+  //   never calls fetchData, so it never registers a hit or a miss.
+  //
+  // Counter semantics (defined in test-page.html):
+  //   cacheMisses  — incremented when rawAdapter.fetchData is called (real network fetch)
+  //   cacheHits    — incremented when cachedAdapter.fetchData is called AND rawAdapter
+  //                  was NOT invoked (data served from the LRU cache)
+  //
+  // Each test navigates to test-page.html fresh; init() fires in the constructor
+  // so the beforeEach wait on '#cache-grid tbody tr' guarantees miss:1, hit:0 at start.
 
-  test('CacheAdapter: first load is a miss, same-page reload is a hit', async ({ page }) => {
-    // Wait for the cache-grid to render its first data row
-    await page.waitForSelector('#cache-grid tbody tr');
+  test.describe('CacheAdapter: init() is the only path that calls fetchData', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.waitForSelector('#cache-grid tbody tr');
+    });
 
-    // After initial load miss counter should be 1, hit counter should be 0
-    const missAfterLoad = await page.textContent('#cache-miss-count');
-    const hitAfterLoad = await page.textContent('#cache-hit-count');
-    expect(Number(missAfterLoad)).toBe(1);
-    expect(Number(hitAfterLoad)).toBe(0);
+    test('initial page load registers exactly one miss and zero hits', async ({ page }) => {
+      const misses = Number(await page.textContent('#cache-miss-count'));
+      const hits   = Number(await page.textContent('#cache-hit-count'));
+      expect(misses).toBe(1);
+      expect(hits).toBe(0);
+    });
 
-    // Clicking "Reload page" requests the same data — should be a cache hit
-    await page.click('#cache-reload-btn');
-    await page.waitForSelector('#cache-grid tbody tr');
+    test('first reload after initial load is a cache hit', async ({ page }) => {
+      await page.click('#cache-reload-btn');
+      await page.waitForTimeout(400);
+      const misses = Number(await page.textContent('#cache-miss-count'));
+      const hits   = Number(await page.textContent('#cache-hit-count'));
+      expect(misses).toBe(1); // no new miss — same key served from cache
+      expect(hits).toBe(1);
+    });
 
-    const missAfterReload = await page.textContent('#cache-miss-count');
-    const hitAfterReload = await page.textContent('#cache-hit-count');
-    expect(Number(missAfterReload)).toBe(1); // no new miss
-    expect(Number(hitAfterReload)).toBe(1);  // one hit registered
+    test('five consecutive reloads are all cache hits (miss count stays at 1)', async ({ page }) => {
+      for (let i = 0; i < 5; i++) {
+        await page.click('#cache-reload-btn');
+        await page.waitForTimeout(400);
+      }
+      const misses = Number(await page.textContent('#cache-miss-count'));
+      const hits   = Number(await page.textContent('#cache-hit-count'));
+      expect(misses).toBe(1);
+      expect(hits).toBe(5);
+    });
+
+    test('hits + misses equals totalfetchData calls across the session', async ({ page }) => {
+      // 3 reloads → 3 hits + 1 initial miss = 4 total calls
+      for (let i = 0; i < 3; i++) {
+        await page.click('#cache-reload-btn');
+        await page.waitForTimeout(400);
+      }
+      const hits   = Number(await page.textContent('#cache-hit-count'));
+      const misses = Number(await page.textContent('#cache-miss-count'));
+      // Every fetchData call is exactly one hit OR one miss, never both
+      expect(hits + misses).toBe(4);
+      expect(hits).toBe(3);
+      expect(misses).toBe(1);
+    });
   });
 
-  test('CacheAdapter: navigating to an unseen page is a miss; revisiting is a hit', async ({ page }) => {
-    await page.waitForSelector('#cache-grid tbody tr');
-    const missBaseline = Number(await page.textContent('#cache-miss-count'));
+  test.describe('CacheAdapter: goToPage() never calls fetchData', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.waitForSelector('#cache-grid tbody tr');
+    });
 
-    // Go to page 2 — first visit, must be a miss
-    await page.click('#cache-page2-btn');
-    await page.waitForSelector('#cache-grid tbody tr');
-    const missAfterPage2 = Number(await page.textContent('#cache-miss-count'));
-    const hitAfterPage2 = Number(await page.textContent('#cache-hit-count'));
-    expect(missAfterPage2).toBe(missBaseline + 1);
+    test('goToPage(2) leaves hit and miss counters unchanged', async ({ page }) => {
+      const missBefore = Number(await page.textContent('#cache-miss-count'));
+      const hitBefore  = Number(await page.textContent('#cache-hit-count'));
 
-    // Go to page 2 again — now cached, must be a hit
-    await page.click('#cache-page2-btn');
-    await page.waitForSelector('#cache-grid tbody tr');
-    const hitAfterSecondPage2 = Number(await page.textContent('#cache-hit-count'));
-    expect(hitAfterSecondPage2).toBe(hitAfterPage2 + 1);
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(200);
+
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(missBefore);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(hitBefore);
+    });
+
+    test('repeated goToPage calls (P2 → P1 → P2 → P1) never add misses or hits', async ({ page }) => {
+      const missBefore = Number(await page.textContent('#cache-miss-count'));
+
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(150);
+      // go back to page 1 via the built-in First button
+      await page.click('#cache-grid .sg-pagination button:text("First")');
+      await page.waitForTimeout(150);
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(150);
+      await page.click('#cache-grid .sg-pagination button:text("First")');
+      await page.waitForTimeout(150);
+
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(missBefore);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(0); // still no hits
+    });
+
+    test('after goToPage, a subsequent reload is still a cache hit', async ({ page }) => {
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(150);
+
+      await page.click('#cache-reload-btn'); // init() → loadData() → cache HIT
+      await page.waitForTimeout(400);
+
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(1);
+    });
+
+    test('page 1 and page 2 render different row content', async ({ page }) => {
+      const firstCellPage1 = await page.textContent('#cache-grid tbody tr:first-child td:first-child');
+
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(150);
+
+      const firstCellPage2 = await page.textContent('#cache-grid tbody tr:first-child td:first-child');
+      expect(firstCellPage1).not.toBe(firstCellPage2);
+    });
+
+    test('a single fetch loads enough data for at least two pages of navigation', async ({ page }) => {
+      const missBefore = Number(await page.textContent('#cache-miss-count'));
+
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(150);
+      const rowsPage2 = await page.$$eval('#cache-grid tbody tr', els => els.length);
+      // Navigation required no new fetch
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(missBefore);
+      // And page 2 actually has rows (data was loaded in one shot)
+      expect(rowsPage2).toBeGreaterThan(0);
+      expect(rowsPage2).toBeLessThanOrEqual(10);
+    });
   });
 
-  test('CacheAdapter: clearing cache forces a miss on next load', async ({ page }) => {
-    await page.waitForSelector('#cache-grid tbody tr');
+  test.describe('CacheAdapter: data integrity', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.waitForSelector('#cache-grid tbody tr');
+    });
 
-    // Warm the cache with a reload so we know page 1 is cached
-    await page.click('#cache-reload-btn');
-    await page.waitForSelector('#cache-grid tbody tr');
-    const hitBeforeClear = Number(await page.textContent('#cache-hit-count'));
-    expect(hitBeforeClear).toBeGreaterThanOrEqual(1);
+    test('a cache hit returns identical row data to the original miss fetch', async ({ page }) => {
+      const firstCellOnMiss = await page.textContent('#cache-grid tbody tr:first-child td:first-child');
 
-    // Clear the cache
-    await page.click('#cache-clear-btn');
+      await page.click('#cache-reload-btn'); // hit
+      await page.waitForTimeout(400);
 
-    // Reload — cache is empty so this must be a miss
-    const missBefore = Number(await page.textContent('#cache-miss-count'));
-    await page.click('#cache-reload-btn');
-    await page.waitForSelector('#cache-grid tbody tr');
-    const missAfter = Number(await page.textContent('#cache-miss-count'));
-    // Hit count must not have increased (it was a miss, not a hit)
-    const hitAfterClear = Number(await page.textContent('#cache-hit-count'));
-    expect(missAfter).toBe(missBefore + 1);
-    expect(hitAfterClear).toBe(hitBeforeClear); // unchanged
+      const firstCellOnHit = await page.textContent('#cache-grid tbody tr:first-child td:first-child');
+      expect(firstCellOnHit).toBe(firstCellOnMiss);
+    });
+
+    test('grid renders at most pageSize (10) rows per page', async ({ page }) => {
+      const rows = await page.$$eval('#cache-grid tbody tr', els => els.length);
+      expect(rows).toBeGreaterThan(0);
+      expect(rows).toBeLessThanOrEqual(10);
+    });
+
+    test('cached data is correct after three reloads', async ({ page }) => {
+      const firstCellOriginal = await page.textContent('#cache-grid tbody tr:first-child td:first-child');
+
+      for (let i = 0; i < 3; i++) {
+        await page.click('#cache-reload-btn');
+        await page.waitForTimeout(400);
+      }
+
+      const firstCellAfter3 = await page.textContent('#cache-grid tbody tr:first-child td:first-child');
+      expect(firstCellAfter3).toBe(firstCellOriginal);
+    });
   });
 
-  test('CacheAdapter: grid renders correct rows', async ({ page }) => {
-    await page.waitForSelector('#cache-grid tbody tr');
-    const rows = await page.$$eval('#cache-grid tbody tr', els => els.length);
-    expect(rows).toBeGreaterThan(0);
-    expect(rows).toBeLessThanOrEqual(10);
+  test.describe('CacheAdapter: clearCache() invalidation', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.waitForSelector('#cache-grid tbody tr');
+    });
+
+    test('clearCache() forces a miss on the next init()', async ({ page }) => {
+      // warm the cache first
+      await page.click('#cache-reload-btn');
+      await page.waitForTimeout(400);
+      const hitBeforeClear = Number(await page.textContent('#cache-hit-count'));
+      expect(hitBeforeClear).toBe(1);
+
+      await page.click('#cache-clear-btn');
+
+      const missBefore = Number(await page.textContent('#cache-miss-count'));
+      await page.click('#cache-reload-btn'); // cache empty → real network fetch
+      await page.waitForTimeout(1000);
+
+      const missAfter = Number(await page.textContent('#cache-miss-count'));
+      const hitAfter  = Number(await page.textContent('#cache-hit-count'));
+      expect(missAfter).toBe(missBefore + 1); // one new miss
+      expect(hitAfter).toBe(hitBeforeClear);   // no new hit
+    });
+
+    test('after clearCache(), the second init() is a hit again', async ({ page }) => {
+      await page.click('#cache-clear-btn');
+
+      // first init after clear → miss
+      await page.click('#cache-reload-btn');
+      await page.waitForTimeout(1000);
+      const missAfterFirstReload = Number(await page.textContent('#cache-miss-count'));
+
+      // second init after clear → hit (cache warm again)
+      await page.click('#cache-reload-btn');
+      await page.waitForTimeout(400);
+
+      const missAfterSecond = Number(await page.textContent('#cache-miss-count'));
+      const hitAfterSecond  = Number(await page.textContent('#cache-hit-count'));
+      expect(missAfterSecond).toBe(missAfterFirstReload); // no additional miss
+      expect(hitAfterSecond).toBeGreaterThanOrEqual(1);
+    });
+
+    test('clearCache() preserves cumulative counters (does not reset to zero)', async ({ page }) => {
+      await page.click('#cache-reload-btn'); // hit 1
+      await page.waitForTimeout(400);
+      await page.click('#cache-reload-btn'); // hit 2
+      await page.waitForTimeout(400);
+
+      const hitBeforeClear  = Number(await page.textContent('#cache-hit-count'));
+      const missBeforeClear = Number(await page.textContent('#cache-miss-count'));
+      expect(hitBeforeClear).toBe(2);
+      expect(missBeforeClear).toBe(1);
+
+      await page.click('#cache-clear-btn');
+
+      // counters are still visible and unchanged after cache clear
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(hitBeforeClear);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(missBeforeClear);
+    });
+
+    test('goToPage() after clearCache() does not add a miss (dataSet still in memory)', async ({ page }) => {
+      await page.click('#cache-clear-btn');
+
+      const missBefore = Number(await page.textContent('#cache-miss-count'));
+      // dataSet still has all rows in StreamGrid — goToPage re-renders without fetching
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(200);
+
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(missBefore);
+    });
+
+    test('multiple clearCache() cycles accumulate misses and hits correctly', async ({ page }) => {
+      // 1st cycle: miss(1) → hit(1) → hit(2) → clear
+      await page.click('#cache-reload-btn'); await page.waitForTimeout(400); // hit
+      await page.click('#cache-reload-btn'); await page.waitForTimeout(400); // hit
+      await page.click('#cache-clear-btn');
+
+      // 2nd cycle: miss(2) → hit(3) → hit(4) → clear
+      await page.click('#cache-reload-btn'); await page.waitForTimeout(1000); // miss
+      await page.click('#cache-reload-btn'); await page.waitForTimeout(400);  // hit
+      await page.click('#cache-reload-btn'); await page.waitForTimeout(400);  // hit
+      await page.click('#cache-clear-btn');
+
+      // 3rd cycle: miss(3)
+      await page.click('#cache-reload-btn'); await page.waitForTimeout(1000); // miss
+
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(3);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(4);
+    });
+  });
+
+  test.describe('CacheAdapter: full lifecycle sequences', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.waitForSelector('#cache-grid tbody tr');
+    });
+
+    test('full lifecycle: miss → 3 hits → clear → miss → 3 hits', async ({ page }) => {
+      // initial miss already happened in beforeEach
+      for (let i = 0; i < 3; i++) {
+        await page.click('#cache-reload-btn');
+        await page.waitForTimeout(400);
+      }
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(3);
+
+      await page.click('#cache-clear-btn');
+
+      await page.click('#cache-reload-btn'); // miss after clear
+      await page.waitForTimeout(1000);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(2);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(3); // unchanged
+
+      for (let i = 0; i < 3; i++) {
+        await page.click('#cache-reload-btn');
+        await page.waitForTimeout(400);
+      }
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(6);  // 3 + 3
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(2); // 1 initial + 1 after clear
+    });
+
+    test('interleaved navigate + reload + clear: counters stay correct throughout', async ({ page }) => {
+      // Start: miss:1 hit:0
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(0);
+
+      // goToPage(2) — no fetch
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(150);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(0);
+
+      // reload — hit (cache warm)
+      await page.click('#cache-reload-btn');
+      await page.waitForTimeout(400);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(1);
+
+      // goToPage(2) again — still no fetch
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(150);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(1);
+
+      // clear — counters preserved
+      await page.click('#cache-clear-btn');
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(1);
+
+      // goToPage after clear — dataSet still in memory, no fetch
+      await page.click('#cache-page2-btn');
+      await page.waitForTimeout(150);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(1);
+
+      // reload after clear — cache empty → miss
+      await page.click('#cache-reload-btn');
+      await page.waitForTimeout(1000);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(2);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(1); // no new hit
+
+      // reload again — cache warm → hit
+      await page.click('#cache-reload-btn');
+      await page.waitForTimeout(400);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(2);
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(2);
+    });
+
+    test('rapid reload storm: 10 reloads = 10 hits, 0 additional misses', async ({ page }) => {
+      // Initial miss already in beforeEach; storm of 10 rapid reloads
+      for (let i = 0; i < 10; i++) {
+        await page.click('#cache-reload-btn');
+        await page.waitForTimeout(300);
+      }
+      expect(Number(await page.textContent('#cache-hit-count'))).toBe(10);
+      expect(Number(await page.textContent('#cache-miss-count'))).toBe(1);
+    });
   });
 
   // ── exportConfig demo (#export-grid) ────────────────────────────────────────
