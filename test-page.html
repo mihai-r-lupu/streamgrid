@@ -83,6 +83,86 @@
       max-height: 420px;
       overflow-y: auto;
     }
+
+    /* ── Demo utility styles ─────────────────────────────────── */
+    .demo-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      flex-wrap: wrap;
+    }
+
+    .demo-toolbar button {
+      padding: 5px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: #334155;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .demo-toolbar button:hover {
+      background: #f1f5f9;
+    }
+
+    .demo-toolbar .badge-info {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+      background: #eef2ff;
+      color: #4338ca;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .cache-stats {
+      font-size: 0.78rem;
+      font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+      color: #64748b;
+      padding: 0 16px 6px;
+    }
+
+    .cache-stats .hit {
+      color: #16a34a;
+      font-weight: 600;
+    }
+
+    .cache-stats .miss {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    #export-toolbar {
+      align-items: flex-start;
+    }
+
+    #snapshot-output {
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px 10px;
+      font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+      font-size: 0.75rem;
+      color: #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .export-status {
+      font-size: 0.78rem;
+      color: #64748b;
+      padding: 0 16px 6px;
+    }
   </style>
 </head>
 
@@ -133,11 +213,39 @@
       <div id="event-grid" class="grid-container"></div>
     </section>
 
+    <!-- 7) CacheAdapter demo -->
+    <section id="cache-test">
+      <h2>CacheAdapter — LRU cache + deduplication</h2>
+      <div class="demo-toolbar">
+        <button id="cache-reload-btn">Reload (same page)</button>
+        <button id="cache-page2-btn">Go to page 2</button>
+        <button id="cache-clear-btn">Clear cache</button>
+        <span class="badge-info">TTL: 30 s · maxEntries: 20</span>
+      </div>
+      <div class="cache-stats" id="cache-stats">Cache hits: <span class="hit" id="cache-hit-count">0</span> &nbsp;
+        misses: <span class="miss" id="cache-miss-count">0</span></div>
+      <div id="cache-grid" class="grid-container"></div>
+    </section>
+
+    <!-- 8) exportConfig demo -->
+    <section id="exportconfig-test">
+      <h2><code>exportConfig()</code> — serialisable grid state</h2>
+      <div class="demo-toolbar" id="export-toolbar">
+        <button id="export-btn">Export snapshot</button>
+        <button id="restore-btn" disabled>Restore snapshot</button>
+        <span class="badge-info" id="export-badge">Navigate the grid then export</span>
+        <textarea id="snapshot-output" placeholder="JSON snapshot will appear here…" spellcheck="false"></textarea>
+      </div>
+      <div class="export-status" id="export-status"></div>
+      <div id="export-grid" class="grid-container"></div>
+    </section>
+
   </main>
 
   <script type="module">
     import { StreamGrid } from './src/StreamGrid.js';
     import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
+    import { CacheAdapter } from './src/dataAdapter/CacheAdapter.js';
 
     const adapter = new RestApiAdapter({ baseUrl: 'http://localhost:3000' });
 
@@ -230,6 +338,93 @@
     eventGrid.on('cellClicked', info =>
       console.log('[Demo] cellClicked', info)
     );
+
+    // ── 7) CacheAdapter demo ──────────────────────────────────────────────────
+
+    let cacheHits = 0;
+    let cacheMisses = 0;
+
+    // Instrument the inner adapter to count real fetches (= cache misses)
+    const rawAdapter = new RestApiAdapter({ baseUrl: 'http://localhost:3000' });
+    const _origFetchData = rawAdapter.fetchData.bind(rawAdapter);
+    rawAdapter.fetchData = async (table, opts) => {
+      cacheMisses++;
+      document.getElementById('cache-miss-count').textContent = cacheMisses;
+      return _origFetchData(table, opts);
+    };
+
+    const cachedAdapter = new CacheAdapter(rawAdapter, { ttl: 30000, maxEntries: 20 });
+
+    // Detect hits: if cacheMisses didn't advance, the inner adapter was never called → hit
+    const _origFetchCached = cachedAdapter.fetchData.bind(cachedAdapter);
+    cachedAdapter.fetchData = async (table, opts) => {
+      const misseBefore = cacheMisses;
+      const result = await _origFetchCached(table, opts);
+      if (cacheMisses === misseBefore) {
+        cacheHits++;
+        document.getElementById('cache-hit-count').textContent = cacheHits;
+      }
+      return result;
+    };
+
+    window.cacheGrid = new StreamGrid('#cache-grid', {
+      dataAdapter: cachedAdapter,
+      table: 'users',
+      columns: ['name', 'email', 'status', 'department'],
+      pagination: true,
+      paginationMode: 'pages',
+      pageSize: 10,
+      filterMode: 'client'
+    });
+
+    document.getElementById('cache-reload-btn').addEventListener('click', () => {
+      window.cacheGrid.init();
+    });
+    document.getElementById('cache-page2-btn').addEventListener('click', () => {
+      window.cacheGrid.goToPage(2);
+    });
+    document.getElementById('cache-clear-btn').addEventListener('click', () => {
+      cachedAdapter.clearCache();
+      document.getElementById('cache-stats').innerHTML =
+        'Cache cleared. Next load is a <span class="miss">miss</span>. ' +
+        'Cache hits: <span class="hit" id="cache-hit-count">' + cacheHits + '</span> &nbsp; misses: <span class="miss" id="cache-miss-count">' + cacheMisses + '</span>';
+    });
+
+    // ── 8) exportConfig demo ──────────────────────────────────────────────────
+    window.exportGrid = new StreamGrid('#export-grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: ['name', 'email', 'status', 'department', 'city'],
+      pagination: true,
+      paginationMode: 'pages',
+      pageSize: 10,
+      filters: ['name', 'email', 'department'],
+      filterDebounceTime: 300
+    });
+
+    let savedSnapshot = null;
+
+    document.getElementById('export-btn').addEventListener('click', () => {
+      savedSnapshot = window.exportGrid.exportConfig();
+      const json = JSON.stringify(savedSnapshot, null, 2);
+      document.getElementById('snapshot-output').value = json;
+      document.getElementById('restore-btn').disabled = false;
+      document.getElementById('export-badge').textContent =
+        `Snapshot saved — page ${savedSnapshot.currentPage}, filter: "${savedSnapshot.currentFilterText}"`;
+    });
+
+    document.getElementById('restore-btn').addEventListener('click', () => {
+      if (!savedSnapshot) return;
+      // Destroy current grid's DOM content and recreate from snapshot
+      document.getElementById('export-grid').innerHTML = '';
+      window.exportGrid = new StreamGrid('#export-grid', {
+        ...savedSnapshot,
+        dataAdapter: adapter        // dataAdapter is never serialised — must be re-supplied
+      });
+      document.getElementById('export-status').textContent =
+        `Restored to page ${savedSnapshot.currentPage} with filter "${savedSnapshot.currentFilterText}"`;
+    });
+
   </script>
 
 </body>

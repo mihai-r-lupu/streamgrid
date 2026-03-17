@@ -102,6 +102,81 @@
             overflow-y: auto;
         }
 
+        /* ── Demo utility styles ─────────────────────────────────── */
+        .demo-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            flex-wrap: wrap;
+        }
+
+        .demo-toolbar button {
+            padding: 5px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #fff;
+            color: #334155;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .demo-toolbar button:hover {
+            background: #f1f5f9;
+        }
+
+        .demo-toolbar .badge-info {
+            font-size: 0.78rem;
+            font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .cache-stats {
+            font-size: 0.78rem;
+            font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+            color: #64748b;
+            padding: 0 16px 6px;
+        }
+
+        .cache-stats .hit {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .cache-stats .miss {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        #snapshot-output {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px 10px;
+            font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+            font-size: 0.75rem;
+            color: #334155;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .export-status {
+            font-size: 0.78rem;
+            color: #64748b;
+            padding: 0 16px 6px;
+        }
+
         code {
             background: #eef2ff;
             padding: 1px 6px;
@@ -169,12 +244,53 @@
             <div id="infinite-demo" class="grid-container"></div>
         </section>
 
+        <section>
+            <h2><code>CacheAdapter</code> — LRU cache + deduplication</h2>
+            <p class="section-note">
+                The grid below wraps the <code>StaticAdapter</code> with a <code>CacheAdapter</code>
+                (TTL: 30 s, maxEntries: 20). Navigating back to a page already fetched counts as a
+                cache <span style="color:#16a34a;font-weight:600">hit</span>; first loads count as
+                <span style="color:#dc2626;font-weight:600">misses</span>.
+            </p>
+            <div class="demo-toolbar">
+                <button id="cache-reload-btn">Reload page</button>
+                <button id="cache-page2-btn">Go to page 2</button>
+                <button id="cache-page1-btn">Back to page 1</button>
+                <button id="cache-clear-btn">Clear cache</button>
+                <span class="badge-info">TTL: 30 s · maxEntries: 20</span>
+            </div>
+            <div class="cache-stats" id="cache-stats">
+                Cache hits: <span class="hit" id="cache-hit-count">0</span>
+                &nbsp; misses: <span class="miss" id="cache-miss-count">0</span>
+            </div>
+            <div id="cache-demo" class="grid-container"></div>
+        </section>
+
+        <section>
+            <h2><code>exportConfig()</code> — serialisable grid state</h2>
+            <p class="section-note">
+                Navigate to any page or type a filter, then click <strong>Export snapshot</strong>.
+                The full grid state serialises to JSON and can be spread back into
+                the <code>StreamGrid</code> constructor to restore it exactly.
+            </p>
+            <div class="demo-toolbar">
+                <button id="export-btn">Export snapshot</button>
+                <button id="restore-btn" disabled>Restore snapshot</button>
+                <span class="badge-info" id="export-badge">Navigate the grid then export</span>
+                <textarea id="snapshot-output" placeholder="JSON snapshot will appear here…"
+                    spellcheck="false"></textarea>
+            </div>
+            <div class="export-status" id="export-status"></div>
+            <div id="export-demo" class="grid-container"></div>
+        </section>
+
     </main>
 
     <script type="module">
         import { StreamGrid } from '../src/StreamGrid.js';
         import { BaseDataAdapter } from '../src/dataAdapter/BaseDataAdapter.js';
         import { filterRows } from '../src/core/filtering/filterEngine.js';
+        import { CacheAdapter } from '../src/dataAdapter/CacheAdapter.js';
 
         // ── StaticAdapter: wraps a plain JS array as a data source ──────────────
         class StaticAdapter extends BaseDataAdapter {
@@ -330,6 +446,103 @@
             filters: ['name', 'email', 'department', 'city'],
             filterDebounceTime: 200,
             loadDefaultCss: false,
+        });
+
+        // ── Grid 4: CacheAdapter demo ────────────────────────────────────────────
+
+        let cacheHits = 0;
+        let cacheMisses = 0;
+
+        // Instrument the inner adapter to count real fetches (= cache misses)
+        const rawAdapter = new StaticAdapter(rows);
+        const _origFetch = rawAdapter.fetchData.bind(rawAdapter);
+        rawAdapter.fetchData = async (table, opts) => {
+            cacheMisses++;
+            document.getElementById('cache-miss-count').textContent = cacheMisses;
+            return _origFetch(table, opts);
+        };
+
+        const cachedAdapter = new CacheAdapter(rawAdapter, { ttl: 30000, maxEntries: 20 });
+
+        // Detect hits: if cacheMisses didn't advance, the inner adapter was never called → hit
+        const _origCachedFetch = cachedAdapter.fetchData.bind(cachedAdapter);
+        cachedAdapter.fetchData = async (table, opts) => {
+            const missesBefore = cacheMisses;
+            const result = await _origCachedFetch(table, opts);
+            if (cacheMisses === missesBefore) {
+                cacheHits++;
+                document.getElementById('cache-hit-count').textContent = cacheHits;
+            }
+            return result;
+        };
+
+        const cacheGrid = new StreamGrid('#cache-demo', {
+            dataAdapter: cachedAdapter,
+            table: 'users',
+            columns: [
+                { field: 'name', label: 'Name' },
+                { field: 'email', label: 'Email' },
+                { field: 'department', label: 'Department' },
+                { field: 'city', label: 'City' },
+            ],
+            pagination: true,
+            paginationMode: 'pages',
+            pageSize: 10,
+            filterMode: 'client',
+            loadDefaultCss: false,
+        });
+
+        document.getElementById('cache-reload-btn').addEventListener('click', () => cacheGrid.init());
+        document.getElementById('cache-page2-btn').addEventListener('click', () => cacheGrid.goToPage(2));
+        document.getElementById('cache-page1-btn').addEventListener('click', () => cacheGrid.goToPage(1));
+        document.getElementById('cache-clear-btn').addEventListener('click', () => {
+            cachedAdapter.clearCache();
+            const stats = document.getElementById('cache-stats');
+            stats.innerHTML =
+                'Cache cleared. Next load will be a <span class="miss">miss</span>. ' +
+                'Hits: <span class="hit" id="cache-hit-count">' + cacheHits + '</span>' +
+                ' &nbsp; Misses: <span class="miss" id="cache-miss-count">' + cacheMisses + '</span>';
+        });
+
+        // ── Grid 5: exportConfig demo ────────────────────────────────────────────
+        let exportGrid = new StreamGrid('#export-demo', {
+            dataAdapter: adapter,
+            table: 'users',
+            columns: [
+                { field: 'name', label: 'Name' },
+                { field: 'email', label: 'Email' },
+                { field: 'department', label: 'Department' },
+                { field: 'city', label: 'City' },
+                { field: 'status', label: 'Status' },
+            ],
+            pagination: true,
+            paginationMode: 'pages',
+            pageSize: 10,
+            filters: ['name', 'email', 'department', 'city'],
+            filterDebounceTime: 200,
+            loadDefaultCss: false,
+        });
+
+        let savedSnapshot = null;
+
+        document.getElementById('export-btn').addEventListener('click', () => {
+            savedSnapshot = exportGrid.exportConfig();
+            document.getElementById('snapshot-output').value = JSON.stringify(savedSnapshot, null, 2);
+            document.getElementById('restore-btn').disabled = false;
+            document.getElementById('export-badge').textContent =
+                `Snapshot saved — page ${savedSnapshot.currentPage}, filter: "${savedSnapshot.currentFilterText}"`;
+        });
+
+        document.getElementById('restore-btn').addEventListener('click', () => {
+            if (!savedSnapshot) return;
+            document.getElementById('export-demo').innerHTML = '';
+            exportGrid = new StreamGrid('#export-demo', {
+                ...savedSnapshot,
+                dataAdapter: adapter,   // dataAdapter is never serialised — must be re-supplied
+                loadDefaultCss: false,
+            });
+            document.getElementById('export-status').textContent =
+                `Restored to page ${savedSnapshot.currentPage} with filter "${savedSnapshot.currentFilterText}"`;
         });
     </script>
 

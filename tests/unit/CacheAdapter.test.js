@@ -217,4 +217,80 @@ describe('CacheAdapter', () => {
             .to.throw('StreamGrid: dataAdapter is missing required method "insertRow".');
     });
 
+    // 16. Different config params produce separate cache entries (page 1 ≠ page 2)
+    it('different config params produce separate cache entries (pages do not collide)', async () => {
+        const inner = makeMockAdapter();
+        const cache = new CacheAdapter(inner, { ttl: 60000 });
+        const page1 = await cache.fetchData('users', { page: 1 });
+        const page2 = await cache.fetchData('users', { page: 2 });
+        // Both calls hit the inner adapter
+        expect(inner.fetchCalls['users']).to.equal(2);
+        // A re-fetch of page 1 returns the cached version (inner not called again)
+        await cache.fetchData('users', { page: 1 });
+        expect(inner.fetchCalls['users']).to.equal(2);
+        // A re-fetch of page 2 also returns the cached version
+        await cache.fetchData('users', { page: 2 });
+        expect(inner.fetchCalls['users']).to.equal(2);
+    });
+
+    // 17. Config key order does not affect cache key (stableSerialise stability)
+    it('config objects with different key insertion order hit the same cache entry', async () => {
+        const inner = makeMockAdapter();
+        const cache = new CacheAdapter(inner, { ttl: 60000 });
+        await cache.fetchData('users', { page: 1, size: 10 });
+        // Same logical config, keys in reverse order — must be a cache hit
+        await cache.fetchData('users', { size: 10, page: 1 });
+        expect(inner.fetchCalls['users']).to.equal(1);
+    });
+
+    // 18. After TTL expiry the fresh data from inner adapter is returned (not stale cached data)
+    it('returns fresh data from inner adapter after TTL expiry, not stale cached value', async () => {
+        const inner = makeMockAdapter();
+        const cache = new CacheAdapter(inner, { ttl: 50 });
+        const stale = await cache.fetchData('users', {});
+        expect(stale).to.deep.equal([{ id: 1 }]);
+        await new Promise(resolve => setTimeout(resolve, 60));
+        const fresh = await cache.fetchData('users', {});
+        // Inner adapter was called a second time, returning [{ id: 2 }]
+        expect(fresh).to.deep.equal([{ id: 2 }]);
+    });
+
+    // 19. insertRow passes the inner adapter's return value through unchanged
+    it('insertRow passes the inner adapter return value through unchanged', async () => {
+        const inner = makeMockAdapter();
+        const cache = new CacheAdapter(inner, { ttl: 60000 });
+        const result = await cache.insertRow('users', { name: 'Alice' });
+        expect(result).to.deep.equal({ name: 'Alice', id: 99 });
+    });
+
+    // 20. updateRow passes the inner adapter's return value through unchanged
+    it('updateRow passes the inner adapter return value through unchanged', async () => {
+        const inner = makeMockAdapter();
+        const cache = new CacheAdapter(inner, { ttl: 60000 });
+        const result = await cache.updateRow('users', 5, { name: 'Bob' });
+        expect(result).to.deep.equal({ name: 'Bob', id: 5 });
+    });
+
+    // 21. deleteRow passes the inner adapter's return value through unchanged
+    it('deleteRow passes the inner adapter return value through unchanged', async () => {
+        const inner = makeMockAdapter();
+        const cache = new CacheAdapter(inner, { ttl: 60000 });
+        const result = await cache.deleteRow('users', 1);
+        expect(result).to.equal(true);
+    });
+
+    // 22. maxEntries: 1 — a second distinct entry evicts the only existing entry
+    it('maxEntries: 1 — second distinct entry evicts the single existing entry', async () => {
+        const inner = makeMockAdapter();
+        const cache = new CacheAdapter(inner, { ttl: 60000, maxEntries: 1 });
+        await cache.fetchData('users', { page: 1 });   // fill the single slot (inner: 1)
+        await cache.fetchData('users', { page: 2 });   // miss, evicts page 1 (inner: 2)
+        // page 2 is now the only cached entry — requesting it again must be a hit
+        await cache.fetchData('users', { page: 2 });
+        expect(inner.fetchCalls['users']).to.equal(2); // still 2 — hit on page 2
+        // page 1 was evicted — requesting it is a miss, which evicts page 2
+        await cache.fetchData('users', { page: 1 });
+        expect(inner.fetchCalls['users']).to.equal(3); // now 3 — miss on page 1
+    });
+
 });
