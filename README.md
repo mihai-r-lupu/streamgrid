@@ -1,6 +1,6 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-100%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-137%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
