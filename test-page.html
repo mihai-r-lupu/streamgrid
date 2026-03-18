@@ -146,11 +146,11 @@
     window.grid = new StreamGrid('#grid', {
       dataAdapter: adapter,
       table: 'users',
-      columns: ['name', 'email', 'status'],
+      columns: ['name', 'email', 'status', 'department', 'city'],
       pagination: true,
       paginationMode: 'infinite',
       pageSize: 10,
-      filters: ['name', 'email'],
+      filters: ['name', 'email', 'department', 'city'],
       filterDebounceTime: 300,
       filterCaseSensitive: false,
       infiniteScrollTriggerDistance: 150,
@@ -278,7 +278,7 @@
     window.cacheGrid = new StreamGrid('#cache-grid', {
       dataAdapter: cachedAdapter,
       table: 'users',
-      columns: ['name', 'email', 'status', 'department'],
+      columns: ['name', 'email', 'status', 'department', 'city'],
       pagination: true,
       paginationMode: 'pages',
       pageSize: 10,
@@ -307,6 +307,7 @@
           render: (value) => html`<span class="sg-badge sg-badge--${value.toLowerCase().replace(/\s+/g, '-')}">${value}</span>`,
         },
         { field: 'department', label: 'Department' },
+        { field: 'city', label: 'City' },
         {
           field: 'actions',
           label: '',
@@ -333,7 +334,7 @@
       pagination: true,
       paginationMode: 'pages',
       pageSize: 10,
-      filters: ['name', 'email', 'department'],
+      filters: ['name', 'email', 'department', 'city'],
       filterDebounceTime: 300
     });
 
