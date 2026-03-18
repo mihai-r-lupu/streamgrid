@@ -89,7 +89,7 @@ export class StreamGrid {
 
         // Sorting state
         this.sortStack = options.sortStack || [];              // [{ field, direction }]
-        this.sortMode  = options.sortMode  || 'auto';          // 'auto' | 'client' | 'server'
+        this.sortMode = options.sortMode || 'auto';          // 'auto' | 'client' | 'server'
         this.clientSortThreshold = options.clientSortThreshold ?? this.clientFilterThreshold;
         this.sortNullsFirst = options.sortNullsFirst ?? false;
 
@@ -166,7 +166,7 @@ export class StreamGrid {
 
         if (this.shouldUseServerSort() && this.sortStack.length) {
             config.sortFields = this.sortStack.map(s => s.field);
-            config.sortOrders  = this.sortStack.map(s => s.direction);
+            config.sortOrders = this.sortStack.map(s => s.direction);
         }
 
         const data = await this.dataAdapter.fetchData(this.table, config);
@@ -684,10 +684,10 @@ export class StreamGrid {
             loadDefaultCss: this.loadDefaultCss,
             currentPage: this.currentPage,
             currentFilterText: this.currentFilterText,
-            sortStack:           this.sortStack.map(s => ({ ...s })),
-            sortMode:            this.sortMode,
+            sortStack: this.sortStack.map(s => ({ ...s })),
+            sortMode: this.sortMode,
             clientSortThreshold: this.clientSortThreshold,
-            sortNullsFirst:      this.sortNullsFirst,
+            sortNullsFirst: this.sortNullsFirst,
             loadingText: typeof this.loadingText === 'function' ? undefined : this.loadingText,
             emptyText: typeof this.emptyText === 'function' ? undefined : this.emptyText,
         };

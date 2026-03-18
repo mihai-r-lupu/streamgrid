@@ -30,19 +30,19 @@ describe('StreamGrid — Sorting', () => {
 
     const ROWS = [
         { id: 1, name: 'Charlie', age: 30, dob: '1994-03-15', score: 85 },
-        { id: 2, name: 'alice',   age: 25, dob: '1999-07-01', score: 92 },
-        { id: 3, name: 'Bob',     age: 35, dob: '1989-11-20', score: 78 },
-        { id: 4, name: 'Dave',    age: 25, dob: '1999-01-10', score: 95 },
-        { id: 5, name: 'Eve',     age: 40, dob: '1984-06-05', score: 60 },
+        { id: 2, name: 'alice', age: 25, dob: '1999-07-01', score: 92 },
+        { id: 3, name: 'Bob', age: 35, dob: '1989-11-20', score: 78 },
+        { id: 4, name: 'Dave', age: 25, dob: '1999-01-10', score: 95 },
+        { id: 5, name: 'Eve', age: 40, dob: '1984-06-05', score: 60 },
     ];
 
     function makeAdapter(rows = ROWS) {
         return {
             async getColumns() { return ['id', 'name', 'age', 'dob', 'score']; },
-            async fetchData()  { return rows; },
-            async insertRow()  {},
-            async updateRow()  {},
-            async deleteRow()  {},
+            async fetchData() { return rows; },
+            async insertRow() { },
+            async updateRow() { },
+            async deleteRow() { },
         };
     }
 
@@ -422,7 +422,7 @@ describe('StreamGrid — Sorting', () => {
             });
             grid._updateSortIndicators();
             const nameTh = [...grid.theadElement.querySelectorAll('th')].find(t => t.dataset.field === 'name');
-            const ageTh  = [...grid.theadElement.querySelectorAll('th')].find(t => t.dataset.field === 'age');
+            const ageTh = [...grid.theadElement.querySelectorAll('th')].find(t => t.dataset.field === 'age');
             expect(nameTh.getAttribute('data-sort-priority')).to.equal('1');
             expect(ageTh.getAttribute('data-sort-priority')).to.equal('2');
         });
@@ -438,7 +438,7 @@ describe('StreamGrid — Sorting', () => {
             const grid = await makeGrid({
                 columns: [
                     { field: 'name', label: 'Name' },
-                    { field: 'id',   label: 'ID', sortable: false },
+                    { field: 'id', label: 'ID', sortable: false },
                 ],
                 sortStack: [{ field: 'name', direction: 'asc' }],
             });

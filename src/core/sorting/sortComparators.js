@@ -10,5 +10,5 @@
 export const SORT_COMPARATORS = {
     string: (a, b) => String(a).localeCompare(String(b)),
     number: (a, b) => Number(a) - Number(b),
-    date:   (a, b) => Date.parse(String(a)) - Date.parse(String(b)),
+    date: (a, b) => Date.parse(String(a)) - Date.parse(String(b)),
 };

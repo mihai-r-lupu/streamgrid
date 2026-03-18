@@ -256,28 +256,33 @@
 /* ── Column sorting ─────────────────────────────────────────── */
 
 th[data-sortable="true"] {
-    cursor: pointer;
-    user-select: none;
+  cursor: pointer;
+  user-select: none;
 }
 
 th[data-sortable="true"]:hover {
-    background-color: var(--sg-th-hover-bg, rgba(0, 0, 0, 0.04));
+  background-color: var(--sg-th-hover-bg, rgba(0, 0, 0, 0.04));
 }
 
 th[data-sort-dir]::after {
-    margin-left: 0.4em;
-    font-size: 0.75em;
-    color: var(--sg-sort-indicator-color, #0066cc);
+  margin-left: 0.4em;
+  font-size: 0.75em;
+  color: var(--sg-sort-indicator-color, #0066cc);
 }
 
-th[data-sort-dir="asc"]::after  { content: "▲"; }
-th[data-sort-dir="desc"]::after { content: "▼"; }
+th[data-sort-dir="asc"]::after {
+  content: "▲";
+}
+
+th[data-sort-dir="desc"]::after {
+  content: "▼";
+}
 
 th[data-sort-priority]::before {
-    content: attr(data-sort-priority);
-    font-size: 0.6em;
-    vertical-align: super;
-    margin-right: 0.15em;
-    color: var(--sg-sort-priority-color, #0066cc);
-    opacity: 0.7;
+  content: attr(data-sort-priority);
+  font-size: 0.6em;
+  vertical-align: super;
+  margin-right: 0.15em;
+  color: var(--sg-sort-priority-color, #0066cc);
+  opacity: 0.7;
 }
