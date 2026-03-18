@@ -1,10 +1,7 @@
 // Pure functions that serialise filter, pagination, and sort state into URL query strings.
 
-// queryBuilder.js
-// Pure functions to serialize filtering, pagination, and sorting criteria into URL parameters
-
 /**
- * Serializes filter criteria into a URLSearchParams string.
+ * Serialises filter criteria into a URLSearchParams string.
  * @param {string[]} fields - Array of field names to filter on.
  * @param {string} query - The search query string.
  * @param {Object} [options] - Additional filter options.
@@ -46,7 +43,7 @@ export function buildFilterParams(fields, query, options = {}) {
 }
 
 /**
- * Serializes pagination parameters into URLSearchParams.
+ * Serialises pagination parameters into URLSearchParams.
  * @param {number} page - Current page number (1-based).
  * @param {number} pageSize - Number of items per page.
  * @returns {string}
@@ -59,7 +56,7 @@ export function buildPaginationParams(page = 1, pageSize = 50) {
 }
 
 /**
- * Serializes sort criteria into URLSearchParams.
+ * Serialises sort criteria into URLSearchParams.
  * @param {string[]} sortFields - Array of fields to sort by.
  * @param {string[]} sortOrders - Array of sort orders ('asc' or 'desc'), parallel to sortFields.
  * @returns {string}

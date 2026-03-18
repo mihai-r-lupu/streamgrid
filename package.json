@@ -5,6 +5,13 @@
   "description": "Lightweight, zero-dependency ES6+ data table library with pluggable adapters, auto-switching client/server filtering, three pagination modes, a hook system, and a plugin API.",
   "main": "src/StreamGrid.js",
   "module": "src/StreamGrid.js",
+  "exports": {
+    ".": "./src/StreamGrid.js",
+    "./utils": "./src/utils/html.js",
+    "./dataAdapter/RestApiAdapter": "./src/dataAdapter/RestApiAdapter.js",
+    "./dataAdapter/CacheAdapter": "./src/dataAdapter/CacheAdapter.js",
+    "./dataAdapter/BaseDataAdapter": "./src/dataAdapter/BaseDataAdapter.js"
+  },
   "directories": {
     "test": "tests"
   },

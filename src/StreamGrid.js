@@ -15,7 +15,7 @@ import { renderNumberedPagination } from './core/pagination/paginationHelpers.js
  * @param {object} options - Configuration options.
  * @param {import('./dataAdapter/BaseDataAdapter.js').BaseDataAdapter} options.dataAdapter - Data source adapter.
  * @param {string} options.table - Table/resource name passed to the adapter.
- * @param {string[]|Array<{field:string,label:string}>} [options.columns=[]] - Column definitions. If empty, auto-discovered from adapter.
+ * @param {string[]|Array<{field:string, label:string, render?:Function}>} [options.columns=[]] - Column definitions. Each column may include a render(value, row, context) callback. If empty, auto-discovered from adapter.
  * @param {string[]} [options.filters=[]] - Fields to enable text filtering on. Omit to hide the filter input.
  * @param {object[]} [options.plugins=[]] - Plugin objects with an optional `init(grid)` method.
  * @param {Array<{selector:string, callback:Function}>} [options.customClickHandlers=[]] - Delegated click handlers.
@@ -37,6 +37,7 @@ import { renderNumberedPagination } from './core/pagination/paginationHelpers.js
  * @param {boolean} [options.loadDefaultCss=true] - Auto-inject the bundled `streamgrid.css`.
  * @param {string|Function} [options.loadingText='Loading\u2026'] - Text or `() => string | HTMLElement` shown while data is loading.
  * @param {string|Function} [options.emptyText='No results'] - Text or `() => string | HTMLElement` shown when the filtered result set is empty.
+ * @param {Function} [options.onRenderError] - Called when a column render() throws or returns an unexpected type. Receives (err, { field, value, row }).
  */
 export class StreamGrid {
     constructor(containerSelector, options) {
@@ -88,6 +89,12 @@ export class StreamGrid {
         // Loading and empty state text (string or () => string | HTMLElement)
         this.loadingText = options.loadingText ?? 'Loading…';
         this.emptyText = options.emptyText ?? 'No results';
+
+        // Render error handler — called when a column render() callback throws or
+        // returns an unexpected type. Default: console.warn with full context.
+        this.onRenderError = options.onRenderError ?? ((err, ctx) => {
+            console.warn(`[StreamGrid] render error in column "${ctx.field}":`, err);
+        });
 
         // Hooks and events
         this.hooks = new HookManager();
@@ -360,7 +367,47 @@ export class StreamGrid {
             this.columns.forEach(col => {
                 const td = document.createElement('td');
                 const field = typeof col === 'string' ? col : col.field;
-                td.textContent = row[field] ?? '';
+                const value = row[field] ?? '';
+                const renderFn = typeof col === 'object' ? col.render : undefined;
+
+                if (renderFn) {
+                    let result;
+                    try {
+                        result = renderFn(value, row, { type: 'display', field, col });
+                    } catch (err) {
+                        this.onRenderError(err, { field, value, row });
+                        tr.appendChild(td);
+                        return;
+                    }
+
+                    if (result === null || result === undefined) {
+                        // Intentional: render returned nothing — fall back to textContent
+                        td.textContent = String(value);
+                    } else if (typeof result === 'string') {
+                        td.innerHTML = result;
+                    } else if (result !== null && typeof result === 'object' && typeof result.nodeType === 'number') {
+                        // Duck-type DOM node check: `instanceof Node` is not available in all
+                        // environments (e.g. JSDOM without global.Node). Any real DOM node has a
+                        // numeric nodeType. If appendChild throws (non-node object with nodeType),
+                        // that is a developer error in the render callback — onRenderError fires.
+                        try {
+                            td.appendChild(result);
+                        } catch (err) {
+                            this.onRenderError(err, { field, value, row });
+                            td.textContent = String(value);
+                        }
+                    } else {
+                        // Unexpected return type
+                        this.onRenderError(
+                            new TypeError(`render() for column "${field}" returned ${typeof result} — expected string, Node, null, or undefined`),
+                            { field, value, row }
+                        );
+                        td.textContent = String(value);
+                    }
+                } else {
+                    td.textContent = String(value);
+                }
+
                 tr.appendChild(td);
             });
             this.tbodyElement.appendChild(tr);
@@ -424,7 +471,9 @@ export class StreamGrid {
      * reconstruct an equivalent grid — the caller must re-supply `dataAdapter`
      * since adapter instances are not serialisable.
      *
-     * Column `render` callbacks are stripped from the exported column objects.
+     * Column `render` callbacks are stripped from the exported column objects
+     * (functions are not serialisable). See the `exportConfig()` JSDoc and
+     * GettingStarted.md for how to re-attach render functions on restore.
      * To restore them, merge the snapshot columns with your column definitions:
      *
      * ```js

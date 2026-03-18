@@ -149,12 +149,3 @@ new StreamGrid('#my-grid', { dataAdapter: new MyCustomAdapter(), table: 'product
 | Firebase REST API | ⚠️ Partially | Needs custom pagination handling |
 | GraphQL | ❌ | Needs a dedicated `GraphQLAdapter` |
 | CSV endpoints | ❌ | Needs a dedicated `CsvApiAdapter` |
-
-
----
-
-## Future Adapters
-
-- `CsvApiAdapter` — for CSV file endpoints
-- `GraphQLAdapter` — for GraphQL APIs
-- `FirebaseAdapter` — for Firestore / Realtime DB

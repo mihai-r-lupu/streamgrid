@@ -78,21 +78,21 @@ export function renderNumberedPagination(grid, totalRows) {
         appendNavButton(navStart, prevText, grid.currentPage - 1, grid.currentPage === 1, grid);
 
         // Pages: jump/group/numbers/goto
-        const opts = grid.paginationOptions;
-        const maxBtn = Math.max(1, Math.min(opts.maxPageButtons || 5, totalPages));
-        const showEll = opts.showEllipses !== false;
-        const jump = opts.jumpOffset || 0;
-        const grpSize = opts.groupSize || 0;
-        const inputJump = opts.showPageInput;
+        const options = grid.paginationOptions;
+        const maxButtons = Math.max(1, Math.min(options.maxPageButtons || 5, totalPages));
+        const showEllipses = options.showEllipses !== false;
+        const jump = options.jumpOffset || 0;
+        const groupSize = options.groupSize || 0;
+        const inputJump = options.showPageInput;
 
         if (jump) appendPrevJump(navPages, grid, jump);
-        if (grpSize) appendGroupSelect(navPages, grid, totalPages, grpSize);
+        if (groupSize) appendGroupSelect(navPages, grid, totalPages, groupSize);
 
-        const { startPage: start, endPage: end } = getPageWindow(totalPages, grid.currentPage, maxBtn);
+        const { startPage: start, endPage: end } = getPageWindow(totalPages, grid.currentPage, maxButtons);
         appendPageButton(navPages, grid, 1);
-        if (showEll && start > 2) appendEllipsis(navPages);
+        if (showEllipses && start > 2) appendEllipsis(navPages);
         for (let p = start; p <= end; p++) if (p !== 1 && p !== totalPages) appendPageButton(navPages, grid, p);
-        if (showEll && end < totalPages - 1) appendEllipsis(navPages);
+        if (showEllipses && end < totalPages - 1) appendEllipsis(navPages);
         if (totalPages > 1) appendPageButton(navPages, grid, totalPages);
 
         if (inputJump) appendGotoInput(navPages, grid, totalPages);
@@ -162,36 +162,42 @@ function appendNextJump(parent, grid, totalPages, jump) {
 }
 
 /** Append group select dropdown to a parent element. */
-function appendGroupSelect(parent, grid, totalPages, grpSize) {
-    const grpCount = Math.ceil(totalPages / grpSize);
-    const sel = document.createElement('select');
-    sel.id = 'sg-group-select';
-    sel.className = 'sg-group-select';
-    for (let g = 0; g < grpCount; g++) {
-        const from = g * grpSize + 1;
-        const to = Math.min(totalPages, (g + 1) * grpSize);
-        const opt = document.createElement('option');
-        opt.value = g;
-        opt.textContent = `${from}–${to}`;
-        sel.appendChild(opt);
+function appendGroupSelect(parent, grid, totalPages, groupSize) {
+    const groupCount = Math.ceil(totalPages / groupSize);
+    const select = document.createElement('select');
+    select.id = 'sg-group-select';
+    select.className = 'sg-group-select';
+    for (let g = 0; g < groupCount; g++) {
+        const from = g * groupSize + 1;
+        const to = Math.min(totalPages, (g + 1) * groupSize);
+        const option = document.createElement('option');
+        option.value = g;
+        option.textContent = `${from}–${to}`;
+        select.appendChild(option);
     }
-    sel.addEventListener('change', e => {
-        const g = parseInt(e.target.value, 10);
-        grid.goToPage(g * grpSize + 1);
+    select.addEventListener('change', e => {
+        const groupIndex = parseInt(e.target.value, 10);
+        grid.goToPage(groupIndex * groupSize + 1);
     });
-    parent.appendChild(sel);
+    parent.appendChild(select);
 }
 
 /** Append Go-to-page input and button to a parent element. */
 function appendGotoInput(parent, grid, totalPages) {
     const wrapper = document.createElement('span');
-    const inp = document.createElement('input'); inp.type = 'number'; inp.id = 'sg-goto-page'; inp.min = '1'; inp.max = `${totalPages}`; inp.value = `${grid.currentPage}`;
-    const go = document.createElement('button'); go.textContent = 'Go';
-    go.addEventListener('click', () => {
-        let v = parseInt(inp.value, 10);
-        v = Math.min(totalPages, Math.max(1, v));
-        grid.goToPage(v);
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.id = 'sg-goto-page';
+    input.min = '1';
+    input.max = `${totalPages}`;
+    input.value = `${grid.currentPage}`;
+    const goButton = document.createElement('button');
+    goButton.textContent = 'Go';
+    goButton.addEventListener('click', () => {
+        let pageNum = parseInt(input.value, 10);
+        pageNum = Math.min(totalPages, Math.max(1, pageNum));
+        grid.goToPage(pageNum);
     });
-    wrapper.append(inp, go);
+    wrapper.append(input, goButton);
     parent.appendChild(wrapper);
 }

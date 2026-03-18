@@ -8,7 +8,9 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 /* ── Page foundation ─────────────────────────────────────────────────────── */
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -24,7 +26,9 @@ body {
   color: #fff;
   padding: 32px 0 28px;
   position: fixed;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
 }
 
@@ -55,7 +59,11 @@ body {
   font-size: 0.85em;
 }
 
-.badge-row { display: flex; gap: 8px; margin-top: 14px; }
+.badge-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
 
 .badge {
   display: inline-block;
@@ -76,7 +84,9 @@ body {
   padding: 200px 32px 48px;
 }
 
-section { margin-bottom: 36px; }
+section {
+  margin-bottom: 36px;
+}
 
 h2 {
   margin: 0 0 6px;
@@ -102,7 +112,10 @@ code {
   color: #4338ca;
 }
 
-#infinite-demo .sg-table-wrapper { max-height: 420px; overflow-y: auto; }
+#infinite-demo .sg-table-wrapper {
+  max-height: 420px;
+  overflow-y: auto;
+}
 
 .filter-mode-indicator {
   font-size: 11px;
@@ -163,6 +176,60 @@ code {
   border-radius: 4px;
 }
 
+/* ── Status badges for render-callback demos ─────────────────────────────── */
+.sg-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 9px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.sg-badge--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sg-badge--inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.sg-badge--pending {
+  background: #fef9c3;
+  color: #713f12;
+}
+
+.sg-badge--suspended {
+  background: #eeeeee;
+}
+
+.sg-badge--on-leave {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+/* ── Small inline action button (render-callback demos) ──────────────────── */
+.btn-small {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-small:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
 .cache-stats {
   font-size: 0.78rem;
   font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
@@ -170,11 +237,25 @@ code {
   padding: 0 16px 6px;
 }
 
-.cache-stats .hit { color: #16a34a; font-weight: 600; }
-.cache-stats .miss { color: #dc2626; font-weight: 600; }
+.cache-stats .hit {
+  color: #16a34a;
+  font-weight: 600;
+}
 
-.cache-warm { color: #16a34a; font-weight: 600; }
-.cache-empty { color: #d97706; font-weight: 600; }
+.cache-stats .miss {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.cache-warm {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.cache-empty {
+  color: #d97706;
+  font-weight: 600;
+}
 
 #snapshot-output {
   width: 100%;

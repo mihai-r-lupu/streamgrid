@@ -1,7 +1,5 @@
 // Pure pagination slice functions used by StreamGrid.renderBody().
 
-// src/utils/Paginator.js
-
 /**
  * Returns a slice of data for classic pagination (1-based pages).
  * @param {Array} data - Full array of items.

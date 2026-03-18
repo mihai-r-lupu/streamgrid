@@ -9,13 +9,36 @@
   <link rel="stylesheet" href="./src/demo-shared.css">
   <style>
     /* ── Test page overrides ─────────────────────────────────── */
-    .page-header { padding: 28px 0 24px; }
-    .page-header .header-inner { padding: 0 28px; }
-    .page-header h1 { margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
-    .page-header p { color: #94a3b8; margin: 4px 0 0; font-size: 0.9rem; }
-    .content { padding: 150px 28px 48px; }
+    .page-header {
+      padding: 28px 0 24px;
+    }
+
+    .page-header .header-inner {
+      padding: 0 28px;
+    }
+
+    .page-header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .page-header p {
+      color: #94a3b8;
+      margin: 4px 0 0;
+      font-size: 0.9rem;
+    }
+
+    .content {
+      padding: 150px 28px 48px;
+    }
+
     #grid .sg-table-wrapper,
-    #infinite-grid .sg-table-wrapper { max-height: 420px; overflow-y: auto; }
+    #infinite-grid .sg-table-wrapper {
+      max-height: 420px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 
@@ -24,7 +47,7 @@
   <header class="page-header">
     <div class="header-inner">
       <h1>StreamGrid — Test Page</h1>
-      <p>E2E and manual testing — 6 grid configurations against a live REST API</p>
+      <p>E2E and manual testing — grid configurations against a live REST API</p>
     </div>
   </header>
 
@@ -32,12 +55,14 @@
 
     <!-- 1) Default Grid for E2E (Infinite + Filters) -->
     <section id="default-e2e-test">
-      <h2>Default Grid (<code>#grid</code>) — Infinite + Filters</h2>      <div class="demo-toolbar">
+      <h2>Default Grid (<code>#grid</code>) — Infinite + Filters</h2>
+      <div class="demo-toolbar">
         <button id="demo-shimmer-btn">Show shimmer</button>
         <button id="demo-empty-btn">Show empty state</button>
         <button id="demo-reset-btn">Reset</button>
         <span class="badge-info">Loading &amp; empty state demo</span>
-      </div>      <div id="grid" class="grid-container"></div>
+      </div>
+      <div id="grid" class="grid-container"></div>
     </section>
 
     <!-- 2) Classic Pages Mode -->
@@ -85,7 +110,15 @@
       <div id="cache-grid" class="grid-container"></div>
     </section>
 
-    <!-- 8) exportConfig demo -->
+    <!-- 8) Render Callbacks -->
+    <section id="render-callback-test">
+      <h2>Column Render Callbacks</h2>
+      <p style="padding:0 16px;color:#64748b;font-size:0.88rem;margin:0 0 8px">Status column uses a string render (html
+        tag); Actions column returns a DOM node.</p>
+      <div id="render-grid" class="grid-container"></div>
+    </section>
+
+    <!-- 9) exportConfig demo -->
     <section id="exportconfig-test">
       <h2><code>exportConfig()</code> — serialisable grid state</h2>
       <div class="demo-toolbar" id="export-toolbar">
@@ -105,6 +138,7 @@
     import { StreamGrid } from './src/StreamGrid.js';
     import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
     import { CacheAdapter } from './src/dataAdapter/CacheAdapter.js';
+    import { html } from './src/utils/html.js';
 
     const adapter = new RestApiAdapter({ baseUrl: 'http://localhost:3000' });
 
@@ -260,7 +294,38 @@
       document.getElementById('cache-status').className = 'cache-empty';
     });
 
-    // ── 8) exportConfig demo ──────────────────────────────────────────────────
+    // ── 8) Render Callbacks demo ─────────────────────────────────────────────
+    new StreamGrid('#render-grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: [
+        { field: 'name', label: 'Name' },
+        { field: 'email', label: 'Email' },
+        {
+          field: 'status',
+          label: 'Status',
+          render: (value) => html`<span class="sg-badge sg-badge--${value.toLowerCase().replace(/\s+/g, '-')}">${value}</span>`,
+        },
+        { field: 'department', label: 'Department' },
+        {
+          field: 'actions',
+          label: '',
+          render: (value, row) => {
+            const btn = document.createElement('button');
+            btn.textContent = 'Edit';
+            btn.className = 'btn-small';
+            btn.dataset.id = row.id;
+            btn.addEventListener('click', () => console.log('[Demo] Edit row', row));
+            return btn;
+          },
+        },
+      ],
+      pagination: true,
+      paginationMode: 'pages',
+      pageSize: 10,
+    });
+
+    // ── 9) exportConfig demo ──────────────────────────────────────────────────
     window.exportGrid = new StreamGrid('#export-grid', {
       dataAdapter: adapter,
       table: 'users',

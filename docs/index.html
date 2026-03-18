@@ -29,7 +29,7 @@
     <main class="content">
 
         <section>
-            <h2>Pagination (Pages Mode) + Filtering</h2>
+            <h2>Pagination (Pages Mode) + Filtering + Render Callbacks</h2>
             <p class="section-note">
                 This grid uses <code>filterMode: 'auto'</code> with <code>clientFilterThreshold: 100</code>.
                 Since 500 rows are loaded, filtering is handled server-side through the adapter.
@@ -89,6 +89,7 @@
         import { BaseDataAdapter } from '../src/dataAdapter/BaseDataAdapter.js';
         import { filterRows } from '../src/core/filtering/filterEngine.js';
         import { CacheAdapter } from '../src/dataAdapter/CacheAdapter.js';
+        import { html } from '../src/utils/html.js';
 
         // ── StaticAdapter: wraps a plain JS array as a data source ──────────────
         class StaticAdapter extends BaseDataAdapter {
@@ -162,7 +163,11 @@
                 { field: 'email', label: 'Email' },
                 { field: 'department', label: 'Department' },
                 { field: 'city', label: 'City' },
-                { field: 'status', label: 'Status' },
+                {
+                    field: 'status',
+                    label: 'Status',
+                    render: (value) => html`<span class="sg-badge sg-badge--${value.toLowerCase().replace(/\s+/g, '-')}">${value}</span>`,
+                },
             ],
             pagination: true,
             paginationMode: 'pages',

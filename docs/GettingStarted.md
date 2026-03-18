@@ -22,6 +22,43 @@ import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
 
 ---
 
+## Prerequisites
+
+- A modern browser with ES6 module support
+- A local web server — browsers block ES module imports from `file://`. VS Code Live Server works.
+- A backend API: the examples below use json-server, or you can [write your own adapter](../docs/Adapters.md).
+
+---
+
+## Running json-server
+
+```bash
+npm install -g json-server
+json-server --watch db.json --port 3000
+```
+
+Your `db.json` needs a resource matching your `table` option:
+
+```json
+{
+  "users": [
+    { "id": 1, "name": "Alice", "email": "alice@example.com", "status": "Active" }
+  ]
+}
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|:---|:---|
+| Module not loading | Use a web server, not `file://` |
+| `fetch` fails | Check that json-server or your API is running |
+| Styling missing | Include `streamgrid.css` or set `loadDefaultCss: true` |
+
+---
+
 ## Basic Setup
 
 ```javascript
@@ -36,7 +73,6 @@ const grid = new StreamGrid('#example-container', {
   pagination: true,
   paginationMode: 'numbers',
   paginationFirstLastButtons: true,
-  loadDefaultCss: true
 });
 ```
 
@@ -120,35 +156,6 @@ grid.on('tableRendered', () => {
 
 ---
 
-## Prerequisites
-
-- Modern browser with ES6 module support
-- A local web server (VS Code Live Server works) — `file://` won't load ES modules
-- For REST APIs: json-server (`npm install -g json-server`) or your own backend
-
----
-
-## Running json-server
-
-```bash
-npm install -g json-server
-json-server --watch db.json --port 3000
-```
-
-Make sure `db.json` has a resource like `"users": []`.
-
----
-
-## Troubleshooting
-
-| Problem | Solution |
-|:---|:---|
-| Module not loading | Use a web server, not `file://` |
-| `fetch` fails | Check that json-server or your API is running |
-| Styling missing | Include `streamgrid.css` or set `loadDefaultCss: true` |
-
----
-
 ## Saving and Restoring Grid State
 
 `exportConfig()` returns a single plain serialisable object that captures both the static configuration and the live state of the grid (current page, active filter text, all option values). The object is safe to pass to `JSON.stringify` and can be stored in `localStorage`, a database, or a URL parameter.
@@ -195,3 +202,11 @@ The `scrollContainer` option is stored internally as the original CSS selector s
 ### Filter text and the `filters` option
 
 `currentFilterText` is only meaningful for restore purposes when `filters` is also a non-empty array. If `filters: []` (the default), no filter input is rendered and the saved filter text has no effect on the results — the grid ignores filter text when no filterable fields are configured. To restore a filtered view, ensure both `currentFilterText` and `filters` are present in the snapshot, which they will be when using `exportConfig()` on a properly configured grid.
+
+---
+
+## Column Render Callbacks
+
+Each column definition can include a `render(value, row, context)` function for full control over cell content — returning a string (set as `innerHTML`), a DOM `Node`, or `null`/`undefined` to fall back to the raw value.
+
+For the complete API, XSS-safe templating with the `html` tag, and custom error handling, see [Column Render Callbacks](../README.md#column-render-callbacks) in the README.

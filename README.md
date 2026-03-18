@@ -15,14 +15,7 @@ StreamGrid is a lightweight, zero-dependency JavaScript data table library writt
 
 ## Architecture
 
-```
-StreamGrid
-├── dataAdapter (BaseDataAdapter / RestApiAdapter / CacheAdapter)
-├── DataSet → filterEngine.js
-├── EventEmitter  (lifecycle events)
-├── HookManager   (WordPress-style hooks)
-└── Paginator     (page / infinite helpers)
-```
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions, trade-offs, and the module structure.
 
 ---
 
@@ -62,8 +55,6 @@ const grid = new StreamGrid('#my-table', {
 });
 ```
 
-This renders a fully functional data table inside `#my-table`, fetching live data from a REST API. A filter input appears above the table, and numbered pagination controls appear below.
-
 To run a local mock API for development:
 
 ```bash
@@ -78,7 +69,7 @@ npm run demo   # starts json-server and opens the demo page
 |---|---|---|---|
 | `dataAdapter` | `BaseDataAdapter` | — | **Required.** Data source adapter instance. |
 | `table` | `string` | — | **Required.** Table/resource name passed to the adapter. |
-| `columns` | `string[] \| {field, label}[]` | `[]` | Column definitions. Auto-discovered from adapter if omitted. |
+| `columns` | `string[] \| {field, label, render?}[]` | `[]` | Column definitions. Each column may include a `render(value, row, context)` callback. Auto-discovered from adapter if omitted. |
 | `filters` | `string[]` | `[]` | Fields to enable text filtering on. No filter input if omitted. |
 | `plugins` | `object[]` | `[]` | Plugin objects with an optional `init(grid)` method. |
 | `customClickHandlers` | `{selector, callback}[]` | `[]` | Delegated click handlers tied to CSS selectors inside the table. |
@@ -100,8 +91,77 @@ npm run demo   # starts json-server and opens the demo page
 | `loadDefaultCss` | `boolean` | `true` | Auto-inject the bundled `streamgrid.css`. |
 | `loadingText` | `string \| Function` | `'Loading…'` | Text shown in the shimmer skeleton while data loads. Pass `() => string \| HTMLElement` for rich content. |
 | `emptyText` | `string \| Function` | `'No results'` | Text shown when the filtered result set is empty. Pass `() => string \| HTMLElement` for rich content. |
+| `onRenderError` | `Function` | `console.warn` | Called when a column `render()` throws or returns an unexpected type. Receives `(err, { field, value, row })`. |
 | `currentPage` | `number` | `1` | Initial page to render. Restored automatically when spreading an `exportConfig()` snapshot. |
 | `currentFilterText` | `string` | `''` | Initial filter text. Restored automatically when spreading an `exportConfig()` snapshot. Meaningful only when `filters` is also set. |
+
+---
+
+## Column Render Callbacks
+
+Each column definition can include a `render(value, row, context)` callback for full control over cell content.
+
+```js
+import { html } from 'stream-grid/utils';
+
+const grid = new StreamGrid('#grid', {
+    dataAdapter: myAdapter,
+    table: 'users',
+    columns: [
+        { field: 'name', label: 'Name' },
+        {
+            field: 'status',
+            label: 'Status',
+            render: (value) => html`<span class="badge badge--${value}">${value}</span>`,
+        },
+        {
+            field: 'actions',
+            label: '',
+            render: (value, row) => {
+                const btn = document.createElement('button');
+                btn.textContent = 'Delete';
+                btn.addEventListener('click', () => deleteRow(row.id));
+                return btn;
+            },
+        },
+    ],
+});
+```
+
+### What `render()` can return
+
+| Return type | Behaviour |
+|---|---|
+| `string` | Set as `td.innerHTML` — allows safe HTML markup. Use the `html` tag to auto-escape interpolated values. |
+| `Node` | Appended directly via `td.appendChild()`. |
+| `null` / `undefined` | Falls back to the raw `textContent` value of the field. |
+| Anything else | `onRenderError` is called; the cell falls back to `textContent`. |
+| Thrown exception | `onRenderError` is called; the cell is left empty. |
+
+### `context` argument
+
+The third argument passed to `render()` is `{ type: 'display', field, col }` where `col` is the original column definition object. `type` is always `'display'` today; additional types (`'sort'`, `'filter'`) will be introduced when those features are implemented. Callbacks that ignore `context` entirely will continue to work without modification.
+
+### XSS-safe templating with `html`
+
+The `html` tagged template literal escapes all interpolated values, making it easy to build markup without introducing XSS vulnerabilities:
+
+```js
+import { html } from 'stream-grid/utils';
+
+render: (value) => html`<strong class="status">${value}</strong>`
+```
+
+### Custom error handling
+
+```js
+const grid = new StreamGrid('#grid', {
+    // ...
+    onRenderError: (err, { field, value, row }) => {
+        myErrorTracker.capture(err, { field, value });
+    },
+});
+```
 
 ---
 
@@ -111,6 +171,7 @@ npm run demo   # starts json-server and opens the demo page
 |---|---|---|
 | `init()` | `Promise<void>` | Loads columns and data, initialises plugins, then renders. Called automatically in the constructor; call again to hard-refresh. Emits `loading` then shows shimmer rows before any network requests. |
 | `showLoading()` | `void` | Renders shimmer skeleton rows immediately. Called automatically by `init()`; can be called externally before a manual data refresh. |
+| `showEmpty()` | `void` | Replaces the table body with the empty-state row. Called automatically when data loads with zero rows; can also be called externally. |
 | `goToPage(pageNum)` | `void` | Navigates to a 1-based page number and re-renders. |
 | `loadMoreRows()` | `Promise<void>` | Appends the next batch in infinite-scroll mode. |
 | `getFilteredRows()` | `object[]` | Returns the current filtered row set from the in-memory DataSet. |

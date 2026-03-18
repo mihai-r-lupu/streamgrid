@@ -26,8 +26,6 @@ export class RestApiAdapter extends BaseDataAdapter {
     }
 
     async getColumns(table) {
-        // Infer columns from the keys of the first row.
-        // A dedicated /columns endpoint is not required.
         try {
             const sampleResponse = await fetch(`${this.baseUrl}/${table}?_limit=1`);
             if (!sampleResponse.ok) throw new Error('Failed fetching sample row');

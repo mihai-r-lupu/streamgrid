@@ -12,3 +12,5 @@ import './StreamGrid.filtermode.test.js';
 import './paginator.test.js';
 import './CacheAdapter.test.js';
 import './StreamGrid.exportConfig.test.js';
+import './html.test.js';
+import './StreamGrid.render.test.js';

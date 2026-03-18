@@ -55,11 +55,3 @@ infiniteScrollTriggerDistance: 150,
 infiniteScrollPageSize: 20,
 infiniteScrollTotalLimit: 500
 ```
-
----
-
-## Notes
-
-- In `infinite` mode, no pagination buttons appear.
-- In `pages` and `numbers` modes, buttons appear based on configuration.
-- Filtering resets pagination to page 1 automatically.
