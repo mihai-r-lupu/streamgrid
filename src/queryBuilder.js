@@ -64,9 +64,9 @@ export function buildPaginationParams(page = 1, pageSize = 50) {
 export function buildSortParams(sortFields = [], sortOrders = []) {
   const params = new URLSearchParams();
   if (sortFields.length > 0) {
-    params.set('sortBy', sortFields.join(','));
+    params.set('_sort', sortFields.join(','));
     if (sortOrders.length > 0) {
-      params.set('sortOrder', sortOrders.join(','));
+      params.set('_order', sortOrders.join(','));
     }
   }
   return params.toString();

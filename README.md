@@ -94,6 +94,68 @@ npm run demo   # starts json-server and opens the demo page
 | `onRenderError` | `Function` | `console.warn` | Called when a column `render()` throws or returns an unexpected type. Receives `(err, { field, value, row })`. |
 | `currentPage` | `number` | `1` | Initial page to render. Restored automatically when spreading an `exportConfig()` snapshot. |
 | `currentFilterText` | `string` | `''` | Initial filter text. Restored automatically when spreading an `exportConfig()` snapshot. Meaningful only when `filters` is also set. |
+| `sortStack` | `{field, direction}[]` | `[]` | Initial sort state. Each entry: `{ field: string, direction: 'asc' \| 'desc' }`. Restored on `exportConfig()` round-trips. |
+| `sortMode` | `'auto' \| 'client' \| 'server'` | `'auto'` | Sorting strategy. `'auto'` uses client sort below `clientSortThreshold` rows, server sort above. |
+| `clientSortThreshold` | `number` | `clientFilterThreshold` | Row count above which `auto` mode delegates sort to the server. Defaults to `clientFilterThreshold`. |
+| `sortNullsFirst` | `boolean` | `false` | When `true`, `null`/`undefined` values sort before non-null values. |
+
+---
+
+## Column Sorting
+
+Columns are sortable by default. Click a header to sort; click again to reverse; click a third time to clear the sort. Hold **Shift** while clicking to build a multi-column sort stack.
+
+```js
+const grid = new StreamGrid('#grid', {
+    dataAdapter: myAdapter,
+    table: 'users',
+    columns: [
+        { field: 'name',   label: 'Name' },                         // string sort (default)
+        { field: 'age',    label: 'Age',    sorter: 'number' },
+        { field: 'joined', label: 'Joined', sorter: 'date' },
+        { field: 'id',     label: 'ID',     sortable: false },       // not sortable
+    ],
+    sortStack: [{ field: 'name', direction: 'asc' }],               // initial sort
+    sortMode: 'auto',
+});
+```
+
+### Column definition — sort properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `sortable` | `boolean` | `true` | Set `false` to disable sorting on this column. |
+| `sorter` | `'string' \| 'number' \| 'date' \| Function` | `'string'` | Built-in type or `(aVal, bVal) => number` comparator. Custom functions never receive `null`/`undefined`. |
+
+### Sort options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `sortStack` | `{field, direction}[]` | `[]` | Initial sort state. |
+| `sortMode` | `'auto' \| 'client' \| 'server'` | `'auto'` | Sorting strategy. |
+| `clientSortThreshold` | `number` | `clientFilterThreshold` | Auto-mode threshold. |
+| `sortNullsFirst` | `boolean` | `false` | Sort nulls before non-null values. |
+
+### Click interaction
+
+| Click | Behaviour |
+|---|---|
+| Plain click (unsorted column) | Replace stack with `[{field, asc}]` |
+| Plain click (asc column) | Replace stack with `[{field, desc}]` |
+| Plain click (desc column) | Clear stack |
+| Shift+click (unsorted column) | Push `{field, asc}` to end of stack |
+| Shift+click (asc column) | Toggle to `desc` (preserves stack order) |
+| Shift+click (desc column) | Remove from stack (preserves other entries) |
+
+### `sortMode` × `filterMode` combinations
+
+| sortMode | filterMode | Behaviour |
+|---|---|---|
+| `client` | `client` | All in memory — no extra requests |
+| `client` | `server` | Server filters, client sorts |
+| `server` | `client` | Client filters, server sorts |
+| `server` | `server` | Server handles both |
+| `auto` | `auto` | Each stage resolves independently based on its threshold |
 
 ---
 
@@ -258,6 +320,7 @@ Subscribe to lifecycle events with `grid.on(eventName, callback)`.
 | `tableRendered` | `gridInstance` | After the table body is re-rendered. |
 | `filterApplied` | `{filterText, totalFilteredRows}` | After a filter operation completes. |
 | `paginationChanged` | `{currentPage, totalRows}` | When the user navigates to a different page. |
+| `sortChanged` | `{sortStack: [{field, direction}]}` | After the sort stack changes (header click). Payload contains a deep copy of the new stack. |
 | `dataRowClicked` | `rowData` | When a `<tbody>` row is clicked. |
 | `cellClicked` | `{rowData, columnField}` | When a `<td>` is clicked. |
 | `headerClicked` | `{columnField}` | When a `<th>` is clicked. |
