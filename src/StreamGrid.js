@@ -5,6 +5,7 @@ import { HookManager } from './hooks/HookManager.js';
 import { EventEmitter } from './events/EventEmitter.js';
 import { page, infinite } from './core/pagination/paginator.js';
 import { renderNumberedPagination } from './core/pagination/paginationHelpers.js';
+import { SORT_COMPARATORS } from './core/sorting/sortComparators.js';
 
 /**
  * Renders a dynamic HTML data table: fetches data through a pluggable adapter,
@@ -15,7 +16,7 @@ import { renderNumberedPagination } from './core/pagination/paginationHelpers.js
  * @param {object} options - Configuration options.
  * @param {import('./dataAdapter/BaseDataAdapter.js').BaseDataAdapter} options.dataAdapter - Data source adapter.
  * @param {string} options.table - Table/resource name passed to the adapter.
- * @param {string[]|Array<{field:string, label:string, render?:Function}>} [options.columns=[]] - Column definitions. Each column may include a render(value, row, context) callback. If empty, auto-discovered from adapter.
+ * @param {string[]|Array<{field:string, label:string, render?:Function, sortable?:boolean, sorter?:'string'|'number'|'date'|Function}>} [options.columns=[]] - Column definitions. Each column may include a render(value, row, context) callback, sortable (default true), and a sorter type or custom comparator function.
  * @param {string[]} [options.filters=[]] - Fields to enable text filtering on. Omit to hide the filter input.
  * @param {object[]} [options.plugins=[]] - Plugin objects with an optional `init(grid)` method.
  * @param {Array<{selector:string, callback:Function}>} [options.customClickHandlers=[]] - Delegated click handlers.
@@ -34,6 +35,10 @@ import { renderNumberedPagination } from './core/pagination/paginationHelpers.js
  * @param {boolean} [options.filterCaseSensitive=false] - Enable case-sensitive filtering.
  * @param {'auto'|'client'|'server'} [options.filterMode='auto'] - Filtering mode.
  * @param {number} [options.clientFilterThreshold=1000] - Row count above which auto mode switches to server filtering.
+ * @param {'auto'|'client'|'server'} [options.sortMode='auto'] - Sorting mode. 'auto' uses client sort below clientSortThreshold rows, server sort above.
+ * @param {number} [options.clientSortThreshold] - Row count above which auto mode delegates sort to the server. Defaults to clientFilterThreshold.
+ * @param {Array<{field:string,direction:'asc'|'desc'}>} [options.sortStack=[]] - Initial sort state. Restored on exportConfig()/re-init round-trips.
+ * @param {boolean} [options.sortNullsFirst=false] - When true, null/undefined values sort before non-null values. Default is nulls-last.
  * @param {boolean} [options.loadDefaultCss=true] - Auto-inject the bundled `streamgrid.css`.
  * @param {string|Function} [options.loadingText='Loading\u2026'] - Text or `() => string | HTMLElement` shown while data is loading.
  * @param {string|Function} [options.emptyText='No results'] - Text or `() => string | HTMLElement` shown when the filtered result set is empty.
@@ -82,6 +87,12 @@ export class StreamGrid {
         this.filterMode = options.filterMode || 'auto'; // 'auto' | 'client' | 'server'
         this.clientFilterThreshold = options.clientFilterThreshold || 1000;
 
+        // Sorting state
+        this.sortStack = options.sortStack || [];              // [{ field, direction }]
+        this.sortMode = options.sortMode || 'auto';          // 'auto' | 'client' | 'server'
+        this.clientSortThreshold = options.clientSortThreshold ?? this.clientFilterThreshold;
+        this.sortNullsFirst = options.sortNullsFirst ?? false;
+
         // State for paging
         this.currentPage = options.currentPage || 1;
         this.totalLoadedRows = 0;
@@ -108,6 +119,7 @@ export class StreamGrid {
         // Build DOM structure and bind UI events
         this.buildStaticLayout();
         if (!this.scrollContainer) this.scrollContainer = this.tableWrapper;
+        if (this.sortStack.length) this._updateSortIndicators();
         this.bindEvents();
 
         // Initialize data and render
@@ -144,13 +156,18 @@ export class StreamGrid {
      * @returns {Promise<void>}
      */
     async loadData() {
-        const config = this.shouldUseServerFiltering()
-            ? {
-                fields: this.filters,
-                query: this.currentFilterText,
-                filterOptions: { exactCase: this.filterCaseSensitive }
-            }
-            : {};
+        const config = {};
+
+        if (this.shouldUseServerFiltering()) {
+            config.fields = this.filters;
+            config.query = this.currentFilterText;
+            config.filterOptions = { exactCase: this.filterCaseSensitive };
+        }
+
+        if (this.shouldUseServerSort() && this.sortStack.length) {
+            config.sortFields = this.sortStack.map(s => s.field);
+            config.sortOrders = this.sortStack.map(s => s.direction);
+        }
 
         const data = await this.dataAdapter.fetchData(this.table, config);
         this.dataSet = new DataSet(data);
@@ -182,6 +199,13 @@ export class StreamGrid {
         this.columns.forEach(col => {
             const th = document.createElement('th');
             th.textContent = typeof col === 'string' ? col : col.label;
+            const field = typeof col === 'string' ? col : col.field;
+            const isSortable = typeof col === 'object' ? col.sortable !== false : true;
+            if (isSortable) {
+                th.dataset.field = field;
+                th.dataset.sortable = 'true';
+                th.title = 'Click to sort. Shift+click to add to multi-sort.';
+            }
             headerRow.appendChild(th);
         });
         this.theadElement.appendChild(headerRow);
@@ -274,7 +298,10 @@ export class StreamGrid {
             this.emit('cellClicked', { rowData: this.getFilteredRows()[idx], columnField: this.columns[td.cellIndex] });
         }
         // Header click
-        if (th?.parentElement.parentElement.tagName === 'THEAD') this.emit('headerClicked', { columnField: this.columns[th.cellIndex] });
+        if (th?.parentElement.parentElement.tagName === 'THEAD') {
+            this.emit('headerClicked', { columnField: this.columns[th.cellIndex] });
+            if (th.dataset.sortable === 'true') this._onHeaderSortClick(th, event);
+        }
         // Row click
         if (tr?.parentElement.tagName === 'TBODY') {
             const idx = [...this.tbodyElement.children].indexOf(tr);
@@ -330,7 +357,8 @@ export class StreamGrid {
 
     /** Re-renders the table body and pagination controls for the current page/filter state. */
     renderBody() {
-        const allRows = this.getFilteredRows();
+        const filteredRows = this.getFilteredRows();
+        const allRows = this.getSortedRows(filteredRows);
         const rowsToShow = this.paginationMode === 'infinite'
             ? infinite(allRows, this.totalLoadedRows, this.infiniteScrollPageSize, this.infiniteScrollTotalLimit).rows
             : page(allRows, this.currentPage, this.pageSize);
@@ -442,6 +470,137 @@ export class StreamGrid {
     }
 
     /**
+     * Returns true when the current sort operation should be delegated to the server.
+     * Mirrors the structure of shouldUseServerFiltering() exactly.
+     * @returns {boolean}
+     */
+    shouldUseServerSort() {
+        if (this.sortMode === 'server') return true;
+        if (this.sortMode === 'client') return false;
+        return this.dataSet.data.length > this.clientSortThreshold;
+    }
+
+    /**
+     * Returns a sorted copy of the given rows according to the current sortStack.
+     * Returns the input array unchanged if the stack is empty or if server sort is active
+     * (in which case the server has already sorted the data).
+     * Never mutates DataSet.data.
+     * @param {object[]} rows
+     * @returns {object[]}
+     */
+    getSortedRows(rows) {
+        if (!this.sortStack.length || this.shouldUseServerSort()) return rows;
+        return [...rows].sort(this._buildComparator());
+    }
+
+    /**
+     * Builds a multi-column comparator function from the current sortStack.
+     * Sorter functions are resolved once in the outer closure — not on every comparison call.
+     * Custom sorter functions and null guards are applied before built-in comparators.
+     * @returns {Function}
+     */
+    _buildComparator() {
+        const resolvedStack = this.sortStack.map(({ field, direction }) => {
+            const col = this.columns.find(c => (typeof c === 'string' ? c : c.field) === field);
+            const sorterSpec = (typeof col === 'object' && col?.sorter) || 'string';
+            const compareFn = typeof sorterSpec === 'function'
+                ? sorterSpec
+                : (SORT_COMPARATORS[sorterSpec] ?? SORT_COMPARATORS.string);
+            return { field, direction, compareFn };
+        });
+
+        return (a, b) => {
+            for (const { field, direction, compareFn } of resolvedStack) {
+                const aVal = a[field] ?? undefined;
+                const bVal = b[field] ?? undefined;
+                if (aVal == null && bVal == null) continue;
+                if (aVal == null) return this.sortNullsFirst ? -1 : 1;
+                if (bVal == null) return this.sortNullsFirst ? 1 : -1;
+                const result = compareFn(aVal, bVal);
+                if (result !== 0) return direction === 'asc' ? result : -result;
+            }
+            return 0;
+        };
+    }
+
+    /**
+     * Handles a click on a sortable column header.
+     * Plain click replaces the entire sort stack with a single entry (asc → desc → clear).
+     * Shift+click adds, toggles, or removes an individual entry from the stack.
+     * After mutating the stack: resets to page 1, reloads data if server sort is active,
+     * re-renders, updates sort indicators, and emits 'sortChanged'.
+     * @param {HTMLElement} th - The clicked <th> element.
+     * @param {MouseEvent} event - The original click event.
+     */
+    async _onHeaderSortClick(th, event) {
+        const field = th.dataset.field;
+        const existing = this.sortStack.find(s => s.field === field);
+
+        if (event.shiftKey) {
+            // Shift+click: add, toggle, or remove this field from the stack
+            if (!existing) {
+                this.sortStack.push({ field, direction: 'asc' });
+            } else if (existing.direction === 'asc') {
+                existing.direction = 'desc';
+            } else {
+                this.sortStack = this.sortStack.filter(s => s.field !== field);
+            }
+        } else {
+            // Plain click: clear stack and start fresh with this single column
+            if (!existing) {
+                this.sortStack = [{ field, direction: 'asc' }];
+            } else if (existing.direction === 'asc') {
+                this.sortStack = [{ field, direction: 'desc' }];
+            } else {
+                this.sortStack = [];
+            }
+        }
+
+        this.currentPage = 1;
+
+        if (this.shouldUseServerSort() && this.sortStack.length) {
+            await this.loadData();
+        }
+
+        this.renderBody();
+        this._updateSortIndicators();
+        this.emit('sortChanged', { sortStack: this.sortStack.map(s => ({ ...s })) });
+    }
+
+    /**
+     * Updates data-sort-dir and data-sort-priority attributes on all <th> elements
+     * to reflect the current sortStack. Also updates title attributes to hint
+     * Shift+click behaviour when multi-sort is active.
+     * Uses only attribute mutations — no DOM nodes are added or removed.
+     */
+    _updateSortIndicators() {
+        const ths = [...this.theadElement.querySelectorAll('th')];
+        const isMultiSort = this.sortStack.length > 1;
+
+        ths.forEach((th) => {
+            const field = th.dataset.field;
+            if (!field) return;
+            const entry = this.sortStack.find(s => s.field === field);
+            if (entry) {
+                th.setAttribute('data-sort-dir', entry.direction);
+                if (isMultiSort) {
+                    th.setAttribute('data-sort-priority', this.sortStack.indexOf(entry) + 1);
+                    th.title = 'Click to sort by this column only. Shift+click to remove from multi-sort.';
+                } else {
+                    th.removeAttribute('data-sort-priority');
+                    th.title = 'Click to sort. Shift+click to add to multi-sort.';
+                }
+            } else {
+                th.removeAttribute('data-sort-dir');
+                th.removeAttribute('data-sort-priority');
+                th.title = isMultiSort
+                    ? 'Shift+click to add to multi-sort.'
+                    : 'Click to sort. Shift+click to add to multi-sort.';
+            }
+        });
+    }
+
+    /**
      * Returns the current filtered row set from the DataSet.
      * @returns {object[]}
      */
@@ -493,7 +652,9 @@ export class StreamGrid {
      *   infiniteScrollPageSize:number, infiniteScrollTotalLimit:number|null,
      *   filterDebounceTime:number, filterCaseSensitive:boolean, filterMode:string,
      *   clientFilterThreshold:number, loadDefaultCss:boolean,
-     *   currentPage:number, currentFilterText:string}}
+     *   currentPage:number, currentFilterText:string,
+     *   sortStack:Array<{field:string,direction:string}>, sortMode:string,
+     *   clientSortThreshold:number, sortNullsFirst:boolean}}
      */
     exportConfig() {
         const result = {
@@ -523,6 +684,10 @@ export class StreamGrid {
             loadDefaultCss: this.loadDefaultCss,
             currentPage: this.currentPage,
             currentFilterText: this.currentFilterText,
+            sortStack: this.sortStack.map(s => ({ ...s })),
+            sortMode: this.sortMode,
+            clientSortThreshold: this.clientSortThreshold,
+            sortNullsFirst: this.sortNullsFirst,
             loadingText: typeof this.loadingText === 'function' ? undefined : this.loadingText,
             emptyText: typeof this.emptyText === 'function' ? undefined : this.emptyText,
         };

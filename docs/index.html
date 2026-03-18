@@ -31,8 +31,11 @@
         <section>
             <h2>Pagination (Pages Mode) + Filtering + Render Callbacks</h2>
             <p class="section-note">
-                This grid uses <code>filterMode: 'auto'</code> with <code>clientFilterThreshold: 100</code>.
-                Since 500 rows are loaded, filtering is handled server-side through the adapter.
+                This grid uses <code>filterMode: 'auto'</code> with <code>clientFilterThreshold: 100</code> and
+                <code>sortMode: 'auto'</code> (default) with <code>clientSortThreshold</code> inheriting that same
+                value.
+                Since 500 rows are loaded — above both thresholds — filtering <em>and</em> sorting are both handled
+                server-side through the adapter.
             </p>
             <div class="demo-toolbar">
                 <button id="demo-shimmer-btn">Show shimmer</button>
@@ -108,6 +111,20 @@
                         exactCase: config.filterOptions?.exactCase ?? false,
                     });
                 }
+                // Support server-side sort path so auto mode works
+                if (config.sortFields?.length) {
+                    result = [...result].sort((a, b) => {
+                        for (let i = 0; i < config.sortFields.length; i++) {
+                            const field = config.sortFields[i];
+                            const dir = config.sortOrders?.[i] === 'desc' ? -1 : 1;
+                            const aVal = a[field] ?? '';
+                            const bVal = b[field] ?? '';
+                            if (aVal < bVal) return -1 * dir;
+                            if (aVal > bVal) return 1 * dir;
+                        }
+                        return 0;
+                    });
+                }
                 return result;
             }
             async insertRow() { throw new Error('Read-only demo'); }
@@ -173,7 +190,7 @@
             paginationMode: 'pages',
             pageSize: 10,
             paginationFirstLastButtons: true,
-            filters: ['name', 'email', 'department', 'city'],
+            filters: ['name', 'email', 'department', 'city',],
             filterDebounceTime: 200,
             filterMode: 'auto',
             clientFilterThreshold: 100,
@@ -301,6 +318,7 @@
                 { field: 'email', label: 'Email' },
                 { field: 'department', label: 'Department' },
                 { field: 'city', label: 'City' },
+                { field: 'status', label: 'Status' },
             ],
             pagination: true,
             paginationMode: 'pages',

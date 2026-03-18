@@ -13,6 +13,7 @@ Subscribe to lifecycle events with `grid.on(eventName, callback)`. Multiple hand
 | `dataLoaded` | After data is fetched from the adapter | `(fullDataArray)` |
 | `filterApplied` | After a filter operation completes | `{ filterText, totalFilteredRows }` |
 | `paginationChanged` | When the user changes page | `{ currentPage, totalRows }` |
+| `sortChanged` | After the sort stack changes (header click) | `{ sortStack: [{field, direction}] }` |
 | `dataRowClicked` | When a `<tbody>` data row is clicked | `(rowData)` |
 | `cellClicked` | When a `<td>` in a data row is clicked | `{ rowData, columnField }` |
 | `headerClicked` | When a `<th>` is clicked | `{ columnField }` |
@@ -60,6 +61,7 @@ During a typical page load and user interaction, events fire in this order:
 5. (User clicks page button) -> paginationChanged
 6. (User clicks a cell) -> cellClicked, dataRowClicked, tableClicked
 7. (User clicks header cell) -> headerClicked, headerRowClicked, tableClicked
+8. (User clicks sortable header) -> sortChanged, headerClicked, headerRowClicked, tableClicked
 ```
 
 ---

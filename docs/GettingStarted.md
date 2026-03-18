@@ -210,3 +210,33 @@ The `scrollContainer` option is stored internally as the original CSS selector s
 Each column definition can include a `render(value, row, context)` function for full control over cell content — returning a string (set as `innerHTML`), a DOM `Node`, or `null`/`undefined` to fall back to the raw value.
 
 For the complete API, XSS-safe templating with the `html` tag, and custom error handling, see [Column Render Callbacks](../README.md#column-render-callbacks) in the README.
+
+---
+
+## Sorting
+
+Columns are sortable by default. Click any column header to sort; click again to reverse; click a third time to clear. Hold **Shift** while clicking to build a multi-column sort.
+
+```js
+const grid = new StreamGrid('#my-grid', {
+    dataAdapter: myAdapter,
+    table: 'users',
+    columns: [
+        { field: 'name',   label: 'Name' },              // string sort (default)
+        { field: 'age',    label: 'Age',    sorter: 'number' },
+        { field: 'joined', label: 'Joined', sorter: 'date' },
+        { field: 'id',     label: 'ID',     sortable: false },
+    ],
+});
+```
+
+To set an initial sort or restore a saved sort state:
+
+```js
+new StreamGrid('#grid', {
+    // ...
+    sortStack: [{ field: 'name', direction: 'asc' }],
+});
+```
+
+For the full options reference (`sortMode`, `clientSortThreshold`, `sortNullsFirst`, the Shift+click interaction model, and the `sortMode` × `filterMode` combination table) see [Column Sorting](../README.md#column-sorting) in the README.
