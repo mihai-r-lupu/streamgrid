@@ -1,6 +1,6 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-137%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-181%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
@@ -202,7 +202,7 @@ const grid = new StreamGrid('#grid', {
 
 ### `context` argument
 
-The third argument passed to `render()` is `{ type: 'display', field, col }` where `col` is the original column definition object. `type` is always `'display'` today; additional types (`'sort'`, `'filter'`) will be introduced when those features are implemented. Callbacks that ignore `context` entirely will continue to work without modification.
+The third argument passed to `render()` is `{ type: 'display', field, col }` where `col` is the original column definition object. `type` is always `'display'` today; additional context types may be introduced in future releases. Callbacks that ignore `context` entirely will continue to work without modification.
 
 ### XSS-safe templating with `html`
 
