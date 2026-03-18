@@ -45,7 +45,7 @@ describe('StreamGrid - Auto Filter Mode Switching', () => {
         fetchDataCallCount = 0; // reset after init
 
         grid.filterInput.value = 'user';
-        await grid.onFilter(); // should hit server because 4 > 3
+        await grid._onFilter(); // should hit server because 4 > 3
         expect(fetchDataCallCount).to.equal(1);
     });
 
@@ -76,7 +76,7 @@ describe('StreamGrid - Auto Filter Mode Switching', () => {
         fetchDataCallCount = 0; // reset after init
 
         grid.filterInput.value = 'user';
-        await grid.onFilter(); // should NOT hit server because 3 is not > 3
+        await grid._onFilter(); // should NOT hit server because 3 is not > 3
         expect(fetchDataCallCount).to.equal(0);
     });
 });

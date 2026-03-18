@@ -118,6 +118,32 @@
       <div id="render-grid" class="grid-container"></div>
     </section>
 
+    <!-- 10) Web Component -->
+    <section id="web-component-test">
+      <h2>Web Component — <code>&lt;stream-grid&gt;</code></h2>
+      <p style="padding:0 16px;color:#64748b;font-size:0.88rem;margin:0 0 8px">Declarative HTML-first usage. The grid initialises from attributes alone — no <code>new StreamGrid()</code> call.</p>
+
+      <h3 style="padding:0 16px;margin:16px 0 8px;font-size:1rem">Auto-inferred columns</h3>
+      <stream-grid
+        id="wc-auto"
+        src="http://localhost:3000"
+        table="users"
+        page-size="5"
+        filter-mode="client">
+      </stream-grid>
+
+      <h3 style="padding:0 16px;margin:24px 0 8px;font-size:1rem">Explicit <code>&lt;stream-grid-column&gt;</code> children</h3>
+      <stream-grid
+        id="wc-explicit"
+        src="http://localhost:3000"
+        table="users"
+        page-size="5">
+        <stream-grid-column field="name"   label="Name"></stream-grid-column>
+        <stream-grid-column field="email"  label="Email"></stream-grid-column>
+        <stream-grid-column field="status" label="Status" sortable="false"></stream-grid-column>
+      </stream-grid>
+    </section>
+
     <!-- 9) exportConfig demo -->
     <section id="exportconfig-test">
       <h2><code>exportConfig()</code> — serialisable grid state</h2>
@@ -139,6 +165,7 @@
     import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
     import { CacheAdapter } from './src/dataAdapter/CacheAdapter.js';
     import { html } from './src/utils/html.js';
+    import './src/webComponent/stream-grid.js';
 
     const adapter = new RestApiAdapter({ baseUrl: 'http://localhost:3000' });
 

@@ -1,7 +1,12 @@
 /* src/streamgrid.css */
 
 /* ── Grid container ──────────────────────────────────────── */
-.grid-container {
+stream-grid {
+  display: block;
+}
+
+.grid-container,
+stream-grid {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background: #fff;
@@ -11,13 +16,15 @@
 }
 
 /* ── Grid element polish ────────────────────────────────── */
-.grid-container table {
+.grid-container table,
+stream-grid table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
 
-.grid-container thead th {
+.grid-container thead th,
+stream-grid thead th {
   text-align: left;
   padding: 10px 12px;
   font-weight: 600;
@@ -32,22 +39,26 @@
   z-index: 1;
 }
 
-.grid-container tbody td {
+.grid-container tbody td,
+stream-grid tbody td {
   padding: 9px 12px;
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
 }
 
-.grid-container tbody tr:hover {
+.grid-container tbody tr:hover,
+stream-grid tbody tr:hover {
   background: #f8fafc;
 }
 
-.grid-container tbody tr:last-child td {
+.grid-container tbody tr:last-child td,
+stream-grid tbody tr:last-child td {
   border-bottom: none;
 }
 
 /* ── Filter input polish ────────────────────────────────── */
-.grid-container .sg-controls input[type="text"] {
+.grid-container .sg-controls input[type="text"],
+stream-grid .sg-controls input[type="text"] {
   width: 100%;
   padding: 9px 12px;
   border: 1px solid #d1d5db;
@@ -59,12 +70,14 @@
   outline: none;
 }
 
-.grid-container .sg-controls input[type="text"]:focus {
+.grid-container .sg-controls input[type="text"]:focus,
+stream-grid .sg-controls input[type="text"]:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
-.grid-container .sg-controls input[type="text"]::placeholder {
+.grid-container .sg-controls input[type="text"]::placeholder,
+stream-grid .sg-controls input[type="text"]::placeholder {
   color: #94a3b8;
 }
 

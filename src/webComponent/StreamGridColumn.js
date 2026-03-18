@@ -12,7 +12,7 @@
  *   sortable — "false" disables sorting for this column; anything else = sortable
  *   width    — maps to column.width (CSS value string, e.g. "120px")
  */
-export class StreamGridColumn extends HTMLElement {}
+export class StreamGridColumn extends HTMLElement { }
 
 if (typeof customElements !== 'undefined') {
     customElements.define('stream-grid-column', StreamGridColumn);

@@ -85,7 +85,7 @@ describe('StreamGrid - Mock Data Filtering and Paging', () => {
 
         // Manually simulate loading more rows
         grid.totalLoadedRows = 4; // 2 initial + 2 more
-        grid.renderBody();
+        grid._renderBody();
 
         const rows = container.querySelectorAll('tbody tr');
         expect(rows.length).to.equal(4);

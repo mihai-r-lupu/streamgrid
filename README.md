@@ -38,6 +38,23 @@ import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
 
 ---
 
+Clone the repository and install dev dependencies:
+
+```bash
+git clone https://github.com/mihai-r-lupu/streamgrid.git
+cd streamgrid
+npm install
+```
+
+Import directly as an ES Module — no bundler required:
+
+```js
+import { StreamGrid } from './src/StreamGrid.js';
+import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
+```
+
+---
+
 ## Minimal Working Example
 
 ```js
@@ -120,7 +137,7 @@ el.grid.on('sortChanged', ({ sortStack }) => console.log(sortStack));
 el.grid.columns[0].render = (value) => `<strong>${value}</strong>`;
 ```
 
-Column children are read once at connection time. To change columns programmatically after render, use `element.grid.setColumns([...])`.
+Column children are read once at connection time. To reload with different columns, update the `src` or `table` attributes, or call `element.grid.init()` to hard-refresh.
 
 Setting the `src` attribute after initial render replaces the adapter, clears the data, and re-initialises the grid while preserving sort and filter configuration.
 
@@ -298,7 +315,7 @@ const grid = new StreamGrid('#grid', {
 | `showLoading()` | `void` | Renders shimmer skeleton rows immediately. Called automatically by `init()`; can be called externally before a manual data refresh. |
 | `showEmpty()` | `void` | Replaces the table body with the empty-state row. Called automatically when data loads with zero rows; can also be called externally. |
 | `goToPage(pageNum)` | `void` | Navigates to a 1-based page number and re-renders. |
-| `loadMoreRows()` | `Promise<void>` | Appends the next batch in infinite-scroll mode. |
+| `loadMoreRows()` | `void` | Appends the next batch in infinite-scroll mode. |
 | `getFilteredRows()` | `object[]` | Returns the current filtered row set from the in-memory DataSet. |
 | `exportConfig()` | `object` | Returns a plain serialisable snapshot of all config and live state. See [Saving and Restoring Grid State](docs/GettingStarted.md#saving-and-restoring-grid-state). |
 | `on(event, fn)` | `void` | Subscribe to a lifecycle event. |

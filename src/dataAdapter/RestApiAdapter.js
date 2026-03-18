@@ -19,12 +19,24 @@ export class RestApiAdapter extends BaseDataAdapter {
         this.baseUrl = baseUrl;
     }
 
+    /**
+     * Fetches rows for the given table, serialising filter/pagination/sort state into URL parameters.
+     * @param {string} table
+     * @param {object} [config={}]
+     * @returns {Promise<object[]>}
+     */
     async fetchData(table, config = {}) {
         const url = buildUrl(`${this.baseUrl}/${table}`, config);
         const response = await fetch(url);
         return await response.json();
     }
 
+    /**
+     * Fetches one sample row and infers column names from its keys.
+     * Returns `[]` if the table is empty or the request fails.
+     * @param {string} table
+     * @returns {Promise<string[]>}
+     */
     async getColumns(table) {
         try {
             const sampleResponse = await fetch(`${this.baseUrl}/${table}?_limit=1`);
@@ -43,6 +55,11 @@ export class RestApiAdapter extends BaseDataAdapter {
         }
     }
 
+    /**
+     * @param {string} table
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
     async insertRow(table, data) {
         const response = await fetch(`${this.baseUrl}/${table}`, {
             method: 'POST',
@@ -52,6 +69,12 @@ export class RestApiAdapter extends BaseDataAdapter {
         return response.json();
     }
 
+    /**
+     * @param {string} table
+     * @param {number|string} id
+     * @param {object} data
+     * @returns {Promise<object>}
+     */
     async updateRow(table, id, data) {
         const response = await fetch(`${this.baseUrl}/${table}/${id}`, {
             method: 'PUT',
@@ -61,6 +84,11 @@ export class RestApiAdapter extends BaseDataAdapter {
         return response.json();
     }
 
+    /**
+     * @param {string} table
+     * @param {number|string} id
+     * @returns {Promise<boolean>}
+     */
     async deleteRow(table, id) {
         const response = await fetch(`${this.baseUrl}/${table}/${id}`, {
             method: 'DELETE'

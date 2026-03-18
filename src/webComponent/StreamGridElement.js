@@ -56,10 +56,9 @@ export class StreamGridElement extends HTMLElement {
 
     _reinit() {
         const gen = ++this._generation;
+        const options = this._buildOptions();
         this.innerHTML = '';
         this._grid = null;
-
-        const options = this._buildOptions();
 
         if (!options.dataAdapter) {
             console.warn(
