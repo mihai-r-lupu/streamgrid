@@ -114,13 +114,13 @@ export class StreamGrid {
 
         // Optionally inject default CSS
         this.loadDefaultCss = options.loadDefaultCss ?? true;
-        if (this.loadDefaultCss) this.loadDefaultCssFile();
+        if (this.loadDefaultCss) this._loadDefaultCssFile();
 
         // Build DOM structure and bind UI events
-        this.buildStaticLayout();
+        this._buildStaticLayout();
         if (!this.scrollContainer) this.scrollContainer = this.tableWrapper;
         if (this.sortStack.length) this._updateSortIndicators();
-        this.bindEvents();
+        this._bindEvents();
 
         // Initialize data and render
         this.init();
@@ -134,28 +134,55 @@ export class StreamGrid {
     async init() {
         this.emit('loading');
         this.showLoading();
-        await this.loadColumns();
-        await this.loadData();
+        const wasEmpty = this.columns.length === 0;
+        await this._loadColumns();
+        if (wasEmpty && this.columns.length > 0) this._rebuildHeader();
+        await this._loadData();
         this.plugins.forEach(plugin => plugin.init?.(this));
-        this.renderBody();
+        this._renderBody();
     }
 
     /**
-     * Fetches column definitions from the adapter when none were provided at construction.
+     * Fetches column definitions from the adapter and stores them when none were provided.
+     * A no-op if columns were already supplied at construction time.
      * @returns {Promise<void>}
      */
-    async loadColumns() {
+    async _loadColumns() {
         const cols = await this.dataAdapter.getColumns(this.table);
         if (!this.columns.length) this.columns = cols;
     }
 
     /**
+     * Rebuilds the thead row from `this.columns`.
+     * Called from `init()` when columns were auto-discovered (empty at construction
+     * then populated by `_loadColumns()`).
+     * @returns {void}
+     */
+    _rebuildHeader() {
+        const headerRow = this.theadElement.firstElementChild;
+        headerRow.innerHTML = '';
+        this.columns.forEach(col => {
+            const th = document.createElement('th');
+            th.textContent = typeof col === 'string' ? col : col.label;
+            const field = typeof col === 'string' ? col : col.field;
+            const isSortable = typeof col === 'object' ? col.sortable !== false : true;
+            if (isSortable) {
+                th.dataset.field = field;
+                th.dataset.sortable = 'true';
+                th.title = 'Click to sort. Shift+click to add to multi-sort.';
+            }
+            headerRow.appendChild(th);
+        });
+        if (this.sortStack.length) this._updateSortIndicators();
+    }
+
+    /**
      * Fetches fresh data from the adapter and updates the internal DataSet.
      * When server filtering is active the current filter text is included in the request.
-     * Does NOT re-render — callers are responsible for calling renderBody() afterward.
+     * Does NOT re-render — callers are responsible for calling `_renderBody()` afterward.
      * @returns {Promise<void>}
      */
-    async loadData() {
+    async _loadData() {
         const config = {};
 
         if (this.shouldUseServerFiltering()) {
@@ -174,12 +201,11 @@ export class StreamGrid {
         this.emit('dataLoaded', data);
     }
 
-
     /**
      * Builds the static DOM skeleton (controls, table, pagination container) entirely
      * in memory before appending once to avoid intermediate reflows.
      */
-    buildStaticLayout() {
+    _buildStaticLayout() {
         this.controlsContainer = document.createElement('div');
         this.controlsContainer.className = 'sg-controls';
         if (this.filters.length) {
@@ -219,17 +245,17 @@ export class StreamGrid {
         this.container.append(this.controlsContainer, this.tableWrapper, this.paginationElement);
     }
 
-    /** Attaches DOM event listeners for filter input, table clicks, and scroll. */
-    bindEvents() {
+    /** @private Attaches DOM event listeners for filter input, table clicks, and scroll. */
+    _bindEvents() {
         if (this.filterInput) {
             let timer;
             this.filterInput.addEventListener('input', () => {
                 clearTimeout(timer);
-                timer = setTimeout(() => this.onFilter(), this.filterDebounceTime);
+                timer = setTimeout(() => this._onFilter(), this.filterDebounceTime);
             });
         }
-        this.tableElement.addEventListener('click', e => this.onTableClick(e));
-        this.scrollContainer.addEventListener('scroll', () => this.onScroll());
+        this.tableElement.addEventListener('click', e => this._onTableClick(e));
+        this.scrollContainer.addEventListener('scroll', () => this._onScroll());
     }
 
     /**
@@ -238,27 +264,26 @@ export class StreamGrid {
      * Made async so the `filterApplied` event always fires after data is ready.
      * @returns {Promise<void>}
      */
-    async onFilter() {
+    async _onFilter() {
         const raw = this.filterInput.value.trim();
         this.currentFilterText = this.filterCaseSensitive ? raw : raw.toLowerCase();
 
         if (this.shouldUseServerFiltering()) {
-            await this.loadData();
+            await this._loadData();
         } else {
             this.currentPage = 1;
             this.totalLoadedRows = 0;
         }
 
-        this.renderBody();
+        this._renderBody();
         this.emit('filterApplied', {
             filterText: this.currentFilterText,
             totalFilteredRows: this.getFilteredRows().length
         });
     }
 
-
-    /** Triggers infinite-scroll row loading when the scroll container nears the bottom. */
-    onScroll() {
+    /** @private Triggers infinite-scroll row loading when the scroll container nears the bottom. */
+    _onScroll() {
         if (this.pagination && this.paginationMode === 'infinite' && this.isAtBottom()) {
             this.loadMoreRows();
         }
@@ -269,7 +294,7 @@ export class StreamGrid {
      * and emits built-in events (cellClicked, dataRowClicked, headerClicked, etc.).
      * @param {MouseEvent} event
      */
-    onTableClick(event) {
+    _onTableClick(event) {
         const target = event.target;
         const tr = target.closest('tr');
         const th = target.closest('th');
@@ -355,8 +380,8 @@ export class StreamGrid {
         this.tbodyElement.appendChild(tr);
     }
 
-    /** Re-renders the table body and pagination controls for the current page/filter state. */
-    renderBody() {
+    /** @private Re-renders the table body and pagination controls for the current page/filter state. */
+    _renderBody() {
         const filteredRows = this.getFilteredRows();
         const allRows = this.getSortedRows(filteredRows);
         const rowsToShow = this.paginationMode === 'infinite'
@@ -385,7 +410,7 @@ export class StreamGrid {
             }
             tr.appendChild(td);
             this.tbodyElement.appendChild(tr);
-            this.renderPagination(0);
+            this._renderPagination(0);
             this.emit('tableRendered', this);
             return;
         }
@@ -445,7 +470,7 @@ export class StreamGrid {
             this.scrollContainer.scrollTop = savedScrollTop;
         }
 
-        this.renderPagination(allRows.length);
+        this._renderPagination(allRows.length);
         this.emit('tableRendered', this);
     }
 
@@ -453,7 +478,7 @@ export class StreamGrid {
      * Delegates pagination rendering to the helper module.
      * @param {number} totalRows - Total number of filtered rows.
      */
-    renderPagination(totalRows) {
+    _renderPagination(totalRows) {
         renderNumberedPagination(this, totalRows);
     }
 
@@ -559,10 +584,10 @@ export class StreamGrid {
         this.currentPage = 1;
 
         if (this.shouldUseServerSort() && this.sortStack.length) {
-            await this.loadData();
+            await this._loadData();
         }
 
-        this.renderBody();
+        this._renderBody();
         this._updateSortIndicators();
         this.emit('sortChanged', { sortStack: this.sortStack.map(s => ({ ...s })) });
     }
@@ -611,14 +636,13 @@ export class StreamGrid {
         }).rows;
     }
 
-
     /**
      * Navigates to a specific page number and re-renders.
      * @param {number} pageNum - 1-based page number to go to.
      */
     goToPage(pageNum) {
         this.currentPage = pageNum;
-        this.renderBody();
+        this._renderBody();
         this.emit('paginationChanged', { currentPage: this.currentPage, totalRows: this.getFilteredRows().length });
     }
 
@@ -717,14 +741,14 @@ export class StreamGrid {
         const next = currentShown + this.infiniteScrollPageSize;
         if ((this.infiniteScrollTotalLimit && next > this.infiniteScrollTotalLimit) || next > total) return;
         this.totalLoadedRows = next;
-        this.renderBody();
+        this._renderBody();
     }
 
-    /** Injects the bundled streamgrid.css stylesheet into the document head. */
-    loadDefaultCssFile() {
+    /** @private Injects the bundled streamgrid.css stylesheet into the document head. */
+    _loadDefaultCssFile() {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = './src/streamgrid.css';
+        link.href = new URL('./streamgrid.css', import.meta.url).href;
         document.head.appendChild(link);
     }
 

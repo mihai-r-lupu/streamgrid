@@ -11,35 +11,35 @@
  * @returns {string} - URL-encoded query string (without leading '?').
  */
 export function buildFilterParams(fields, query, options = {}) {
-  const { exactMatch = false, exactCase = false, extra = {} } = options;
-  const params = new URLSearchParams();
+    const { exactMatch = false, exactCase = false, extra = {} } = options;
+    const params = new URLSearchParams();
 
-  // Add free-text query
-  if (query && query.trim()) {
-    params.set('q', query);
-  }
-
-  // Add fields to search against
-  if (Array.isArray(fields) && fields.length > 0) {
-    params.set('fields', fields.join(','));
-  }
-
-  // Add boolean flags
-  if (exactMatch) {
-    params.set('exactMatch', 'true');
-  }
-  if (exactCase) {
-    params.set('exactCase', 'true');
-  }
-
-  // Include any extra parameters
-  Object.entries(extra).forEach(([key, value]) => {
-    if (value != null) {
-      params.set(key, String(value));
+    // Add free-text query
+    if (query && query.trim()) {
+        params.set('q', query);
     }
-  });
 
-  return params.toString();
+    // Add fields to search against
+    if (Array.isArray(fields) && fields.length > 0) {
+        params.set('fields', fields.join(','));
+    }
+
+    // Add boolean flags
+    if (exactMatch) {
+        params.set('exactMatch', 'true');
+    }
+    if (exactCase) {
+        params.set('exactCase', 'true');
+    }
+
+    // Include any extra parameters
+    Object.entries(extra).forEach(([key, value]) => {
+        if (value != null) {
+            params.set(key, String(value));
+        }
+    });
+
+    return params.toString();
 }
 
 /**
@@ -49,10 +49,10 @@ export function buildFilterParams(fields, query, options = {}) {
  * @returns {string}
  */
 export function buildPaginationParams(page = 1, pageSize = 50) {
-  const params = new URLSearchParams();
-  params.set('page', String(page));
-  params.set('pageSize', String(pageSize));
-  return params.toString();
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('pageSize', String(pageSize));
+    return params.toString();
 }
 
 /**
@@ -62,14 +62,14 @@ export function buildPaginationParams(page = 1, pageSize = 50) {
  * @returns {string}
  */
 export function buildSortParams(sortFields = [], sortOrders = []) {
-  const params = new URLSearchParams();
-  if (sortFields.length > 0) {
-    params.set('_sort', sortFields.join(','));
-    if (sortOrders.length > 0) {
-      params.set('_order', sortOrders.join(','));
+    const params = new URLSearchParams();
+    if (sortFields.length > 0) {
+        params.set('_sort', sortFields.join(','));
+        if (sortOrders.length > 0) {
+            params.set('_order', sortOrders.join(','));
+        }
     }
-  }
-  return params.toString();
+    return params.toString();
 }
 
 /**
@@ -87,22 +87,22 @@ export function buildSortParams(sortFields = [], sortOrders = []) {
  * @returns {string} - Full URL with encoded query string.
  */
 export function buildUrl(baseUrl, config = {}) {
-  const parts = [];
-  const filterParams = buildFilterParams(config.fields || [], config.query || '', {
-    exactMatch: config.filterOptions?.exactMatch,
-    exactCase: config.filterOptions?.exactCase,
-    extra: config.extra,
-  });
-  if (filterParams) parts.push(filterParams);
+    const parts = [];
+    const filterParams = buildFilterParams(config.fields || [], config.query || '', {
+        exactMatch: config.filterOptions?.exactMatch,
+        exactCase: config.filterOptions?.exactCase,
+        extra: config.extra,
+    });
+    if (filterParams) parts.push(filterParams);
 
-  if (config.page != null || config.pageSize != null) {
-    parts.push(buildPaginationParams(config.page, config.pageSize));
-  }
+    if (config.page != null || config.pageSize != null) {
+        parts.push(buildPaginationParams(config.page, config.pageSize));
+    }
 
-  if (config.sortFields) {
-    parts.push(buildSortParams(config.sortFields, config.sortOrders || []));
-  }
+    if (config.sortFields) {
+        parts.push(buildSortParams(config.sortFields, config.sortOrders || []));
+    }
 
-  const queryString = parts.filter(Boolean).join('&');
-  return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+    const queryString = parts.filter(Boolean).join('&');
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
 }

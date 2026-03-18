@@ -1,6 +1,6 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-181%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-215%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
@@ -20,6 +20,23 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions, trade-off
 ---
 
 ## Installation
+
+Clone the repository and install dev dependencies:
+
+```bash
+git clone https://github.com/mihai-r-lupu/streamgrid.git
+cd streamgrid
+npm install
+```
+
+Import directly as an ES Module — no bundler required:
+
+```js
+import { StreamGrid } from './src/StreamGrid.js';
+import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
+```
+
+---
 
 Clone the repository and install dev dependencies:
 
@@ -60,6 +77,69 @@ To run a local mock API for development:
 ```bash
 npm run demo   # starts json-server and opens the demo page
 ```
+
+---
+
+## Web Component
+
+StreamGrid ships as a native Web Component (`<stream-grid>`) for zero-JS HTML-first use. No build step, no framework, no glue code required for the basic case.
+
+### Minimal usage
+
+```html
+<script type="module" src="path/to/src/webComponent/stream-grid.js"></script>
+
+<stream-grid
+  src="https://jsonplaceholder.typicode.com/users"
+  table="users"
+  page-size="10">
+</stream-grid>
+```
+
+### With explicit columns
+
+```html
+<stream-grid src="https://api.example.com/products" table="products" page-size="20">
+  <stream-grid-column field="name"  label="Product Name"></stream-grid-column>
+  <stream-grid-column field="price" label="Price" sortable="false"></stream-grid-column>
+  <stream-grid-column field="sku"   label="SKU" width="100px"></stream-grid-column>
+</stream-grid>
+```
+
+### `<stream-grid>` attribute reference
+
+| Attribute         | Description                                                | Default      |
+|-------------------|------------------------------------------------------------|--------------|
+| `src`             | Base URL of the REST API. Required unless using JS API.    | —            |
+| `table`           | Resource/table name appended to `src`.                     | —            |
+| `page-size`       | Rows per page.                                             | `10`         |
+| `pagination-mode` | `'pages'` or `'infinite'`.                                 | `'pages'`    |
+| `filter-mode`     | `'auto'`, `'client'`, or `'server'`.                       | `'auto'`     |
+| `filter-debounce` | Filter input debounce delay in milliseconds.               | `300`        |
+| `sort-mode`       | `'auto'`, `'client'`, or `'server'`.                       | `'auto'`     |
+
+### `<stream-grid-column>` attribute reference
+
+| Attribute  | Description                                                         | Default       |
+|------------|---------------------------------------------------------------------|---------------|
+| `field`    | Key name in the data object. Required.                              | —             |
+| `label`    | Column header text. Falls back to `field` if absent.                | field name    |
+| `sortable` | Set to `"false"` to disable sorting on this column.                 | `"true"`      |
+| `width`    | CSS width value for the column (e.g. `"120px"`, `"10%"`).           | auto          |
+
+### `element.grid` escape hatch
+
+`document.querySelector('stream-grid').grid` returns the full `StreamGrid` instance for programmatic control — setting render callbacks, registering plugins, subscribing to events:
+
+```js
+const el = document.querySelector('stream-grid');
+el.grid.on('sortChanged', ({ sortStack }) => console.log(sortStack));
+el.grid.columns[0].render = (value) => `<strong>${value}</strong>`;
+```
+
+Column children are read once at connection time. To reload with different columns, update the `src` or `table` attributes, or call `element.grid.init()` to hard-refresh.
+
+Setting the `src` attribute after initial render replaces the adapter, clears the data, and re-initialises the grid while preserving sort and filter configuration.
 
 ---
 
@@ -235,7 +315,7 @@ const grid = new StreamGrid('#grid', {
 | `showLoading()` | `void` | Renders shimmer skeleton rows immediately. Called automatically by `init()`; can be called externally before a manual data refresh. |
 | `showEmpty()` | `void` | Replaces the table body with the empty-state row. Called automatically when data loads with zero rows; can also be called externally. |
 | `goToPage(pageNum)` | `void` | Navigates to a 1-based page number and re-renders. |
-| `loadMoreRows()` | `Promise<void>` | Appends the next batch in infinite-scroll mode. |
+| `loadMoreRows()` | `void` | Appends the next batch in infinite-scroll mode. |
 | `getFilteredRows()` | `object[]` | Returns the current filtered row set from the in-memory DataSet. |
 | `exportConfig()` | `object` | Returns a plain serialisable snapshot of all config and live state. See [Saving and Restoring Grid State](docs/GettingStarted.md#saving-and-restoring-grid-state). |
 | `on(event, fn)` | `void` | Subscribe to a lifecycle event. |
