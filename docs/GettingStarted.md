@@ -1,6 +1,31 @@
 # Getting Started
 
-## Installation
+## Web Component Quick Start
+
+The fastest way to embed StreamGrid is the `<stream-grid>` Web Component — one `<script>` tag and then pure HTML:
+
+```html
+<script type="module" src="path/to/src/webComponent/stream-grid.js"></script>
+
+<stream-grid
+  src="https://jsonplaceholder.typicode.com/users"
+  table="users"
+  page-size="10">
+</stream-grid>
+```
+
+No JavaScript required for the basic case. For full attribute reference see the [Web Component section in README.md](../README.md#web-component).
+
+If you need JS-level control (render callbacks, plugins, event listeners), the `element.grid` escape hatch gives you the full `StreamGrid` instance:
+
+```js
+const el = document.querySelector('stream-grid');
+el.grid.on('sortChanged', ({ sortStack }) => console.log(sortStack));
+```
+
+---
+
+## JavaScript API Quick Start
 
 Clone the repository and install dependencies:
 

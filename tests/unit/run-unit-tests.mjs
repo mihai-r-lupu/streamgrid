@@ -15,3 +15,4 @@ import './StreamGrid.exportConfig.test.js';
 import './html.test.js';
 import './StreamGrid.render.test.js';
 import './StreamGrid.sort.test.js';
+import './StreamGridElement.test.js';
