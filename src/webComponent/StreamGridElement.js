@@ -51,7 +51,7 @@ export class StreamGridElement extends HTMLElement {
         if (!this.id) {
             this.id = 'sg-host-' + (++_idCounter);
         }
-        this._reinit();
+        this._scheduleReinit();
     }
 
     /**
@@ -74,14 +74,7 @@ export class StreamGridElement extends HTMLElement {
      */
     attributeChangedCallback(name, oldValue, newValue) {
         if (oldValue === newValue) return;
-        if (!this.isConnected) return;
-        this._dirty = true;
-        queueMicrotask(() => {
-            if (this._dirty) {
-                this._dirty = false;
-                this._reinit();
-            }
-        });
+        this._scheduleReinit();
     }
 
     /**
@@ -96,6 +89,30 @@ export class StreamGridElement extends HTMLElement {
     // ── Private ────────────────────────────────────────────────────────────────
 
     /**
+     * Schedules a debounced reinitialisation via microtask. Multiple calls within
+     * the same synchronous tick coalesce into a single `_reinit()` call, which
+     * prevents a burst of child connect/disconnect/attribute callbacks (e.g. during
+     * initial HTML parse) from triggering redundant reinits.
+     *
+     * The `!this.isConnected` guard makes the method a no-op when the parent is not
+     * in the document — this prevents the cascade-removal crash where each column's
+     * disconnectedCallback notifies a detached parent and triggers a reinit against
+     * a container that no longer exists in the DOM.
+     * @returns {void}
+     */
+    _scheduleReinit() {
+        if (!this.isConnected) return;
+        if (this._reiniting) return;
+        this._dirty = true;
+        queueMicrotask(() => {
+            if (this._dirty) {
+                this._dirty = false;
+                this._reinit();
+            }
+        });
+    }
+
+    /**
      * Tears down any existing grid DOM, builds a fresh options object from current
      * attribute and child state, and constructs a new StreamGrid instance. Includes
      * a generation counter so that stale calls are discarded if a newer reinit fires
@@ -105,19 +122,35 @@ export class StreamGridElement extends HTMLElement {
     _reinit() {
         const gen = ++this._generation;
         const options = this._buildOptions();
+
+        // Save <stream-grid-column> children before clearing: innerHTML = ''
+        // and StreamGrid._buildStaticLayout() both destroy all child nodes.
+        // Re-appending after construction keeps columns alive for future
+        // attribute changes and dynamic add/remove.
+        const columnEls = Array.from(this.children)
+            .filter(el => el.matches('stream-grid-column'));
+        this._reiniting = true;
         this.innerHTML = '';
         this._grid = null;
 
         if (!options.dataAdapter) {
+            columnEls.forEach(col => this.appendChild(col));
+            this._reiniting = false;
             console.warn(
                 'StreamGrid: no data source provided. Set a src attribute or pass a dataAdapter.'
             );
             return;
         }
 
-        if (gen !== this._generation) return;
+        if (gen !== this._generation) {
+            columnEls.forEach(col => this.appendChild(col));
+            this._reiniting = false;
+            return;
+        }
 
         this._grid = new StreamGrid('#' + this.id, options);
+        columnEls.forEach(col => this.appendChild(col));
+        this._reiniting = false;
     }
 
     /**
@@ -183,7 +216,9 @@ export class StreamGridElement extends HTMLElement {
      * @returns {Array<object>} Column definition objects; may include `_filter: true`.
      */
     _parseColumns() {
-        return Array.from(this.querySelectorAll(':scope > stream-grid-column')).map(col => {
+        return Array.from(this.children)
+            .filter(el => el.matches('stream-grid-column'))
+            .map(col => {
             const def = {};
 
             const field = col.getAttribute('field');
