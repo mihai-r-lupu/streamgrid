@@ -135,6 +135,18 @@
         <stream-grid-column field="email" label="Email"></stream-grid-column>
         <stream-grid-column field="status" label="Status" sortable="false"></stream-grid-column>
       </stream-grid>
+
+      <h3 style="padding:0 16px;margin:24px 0 8px;font-size:1rem">Declarative <code>sorter</code> &amp;
+        <code>filter</code> attributes</h3>
+      <p style="padding:0 16px;color:#64748b;font-size:0.88rem;margin:0 0 8px">Filter inputs and sort
+        comparators declared entirely in HTML — no JS options object required.</p>
+      <stream-grid id="wc-declarative" src="http://localhost:3000" table="users" page-size="5">
+        <stream-grid-column field="name"       label="Full Name"  filter></stream-grid-column>
+        <stream-grid-column field="email"      label="Email"      filter sortable="false"></stream-grid-column>
+        <stream-grid-column field="status"     label="Status"     sorter="string"></stream-grid-column>
+        <stream-grid-column field="department" label="Department" filter sorter="string"></stream-grid-column>
+        <stream-grid-column field="city"       label="City"       filter></stream-grid-column>
+      </stream-grid>
     </section>
 
     <!-- 11) DOM Column Config -->
