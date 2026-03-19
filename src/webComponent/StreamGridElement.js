@@ -73,9 +73,19 @@ export class StreamGridElement extends HTMLElement {
     }
 
     _buildOptions() {
+        const columns = this._parseColumns();
+        const filters = columns
+            .filter(col => col._filter)
+            .map(col => col.field);
+
+        // _filter is an internal flag used during parsing — strip it before
+        // passing to StreamGrid, which does not know about it.
+        columns.forEach(col => delete col._filter);
+
         return {
             ...this._parseAttributes(),
-            columns: this._parseColumns(),
+            columns,
+            ...(filters.length ? { filters } : {}),
         };
     }
 
@@ -121,6 +131,12 @@ export class StreamGridElement extends HTMLElement {
 
             const width = col.getAttribute('width');
             if (width != null) def.width = width;
+
+            const sorter = col.getAttribute('sorter');
+            if (sorter != null) def.sorter = sorter;
+
+            // _filter is a temporary flag consumed and stripped by _buildOptions().
+            if (col.hasAttribute('filter')) def._filter = true;
 
             return def;
         });

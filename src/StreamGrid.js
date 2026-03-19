@@ -59,7 +59,7 @@ export class StreamGrid {
         this.dataAdapter = options.dataAdapter;
         this._validateAdapter(this.dataAdapter);
         this.table = options.table;
-        this.columns = options.columns || [];
+        this.columns = (options.columns === 'dom' || !options.columns) ? [] : options.columns;
         this.filters = options.filters || [];
         this.plugins = options.plugins || [];
         this.customClickHandlers = options.customClickHandlers || [];
@@ -117,6 +117,7 @@ export class StreamGrid {
         if (this.loadDefaultCss) this._loadDefaultCssFile();
 
         // Build DOM structure and bind UI events
+        if (options.columns === 'dom') this._parseColumnsFromDOM();
         this._buildStaticLayout();
         if (!this.scrollContainer) this.scrollContainer = this.tableWrapper;
         if (this.sortStack.length) this._updateSortIndicators();
@@ -199,6 +200,63 @@ export class StreamGrid {
         const data = await this.dataAdapter.fetchData(this.table, config);
         this.dataSet = new DataSet(data);
         this.emit('dataLoaded', data);
+    }
+
+    /**
+     * Parses column definitions from hand-authored <th> elements inside the container.
+     * Called when `options.columns === 'dom'`, before `_buildStaticLayout()` clears
+     * the container. Populates `this.columns` and `this.filters` in place.
+     *
+     * Label resolution order: data-sg-label → th.textContent.trim() → data-field.
+     * Throws if any <th> is missing a required data-field attribute.
+     * Warns and falls through to adapter auto-discovery if no <th> elements are found.
+     *
+     * @returns {void}
+     */
+    _parseColumnsFromDOM() {
+        const thead = this.container.querySelector('thead');
+        const ths = thead ? [...thead.querySelectorAll('th')] : [];
+
+        if (ths.length === 0) {
+            console.warn(
+                'StreamGrid: columns: \'dom\' \u2014 no <th> elements found in container. ' +
+                'Falling back to adapter column discovery.'
+            );
+            return;
+        }
+
+        // Validate all <th> elements before mutating anything.
+        ths.forEach((th, i) => {
+            if (!th.dataset.field) {
+                throw new Error(
+                    `StreamGrid: columns: 'dom' \u2014 <th> at index ${i} is missing a required data-field attribute.`
+                );
+            }
+        });
+
+        const columns = [];
+        const filters = [];
+
+        ths.forEach(th => {
+            const field = th.dataset.field;
+
+            const label =
+                th.dataset.sgLabel ||
+                th.textContent.trim() ||
+                field;
+
+            const col = { field, label };
+
+            if (th.dataset.sgSortable === 'false') col.sortable = false;
+            if (th.dataset.sgSorter) col.sorter = th.dataset.sgSorter;
+            if (th.dataset.sgWidth) col.width = th.dataset.sgWidth;
+            if (th.hasAttribute('data-sg-filter')) filters.push(field);
+
+            columns.push(col);
+        });
+
+        this.columns = columns;
+        if (filters.length) this.filters = filters;
     }
 
     /**

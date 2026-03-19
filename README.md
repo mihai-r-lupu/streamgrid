@@ -1,6 +1,6 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-215%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-245%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
@@ -120,12 +120,14 @@ StreamGrid ships as a native Web Component (`<stream-grid>`) for zero-JS HTML-fi
 
 ### `<stream-grid-column>` attribute reference
 
-| Attribute  | Description                                                         | Default       |
-|------------|---------------------------------------------------------------------|---------------|
-| `field`    | Key name in the data object. Required.                              | —             |
-| `label`    | Column header text. Falls back to `field` if absent.                | field name    |
-| `sortable` | Set to `"false"` to disable sorting on this column.                 | `"true"`      |
-| `width`    | CSS width value for the column (e.g. `"120px"`, `"10%"`).           | auto          |
+| Attribute  | Description                                                                         | Default       |
+|------------|-------------------------------------------------------------------------------------|---------------|
+| `field`    | Key name in the data object. Required.                                              | —             |
+| `label`    | Column header text. Falls back to `field` if absent.                                | field name    |
+| `sortable` | Set to `"false"` to disable sorting on this column.                                 | `"true"`      |
+| `width`    | CSS width value for the column (e.g. `"120px"`, `"10%"`).                           | auto          |
+| `sorter`   | Sort type for this column: `"string"`, `"number"`, `"date"`, or a comparator fn.   | `"string"`    |
+| `filter`   | Boolean attribute. When present, this column's field is added to `options.filters`. | absent        |
 
 ### `element.grid` escape hatch
 
@@ -149,7 +151,7 @@ Setting the `src` attribute after initial render replaces the adapter, clears th
 |---|---|---|---|
 | `dataAdapter` | `BaseDataAdapter` | — | **Required.** Data source adapter instance. |
 | `table` | `string` | — | **Required.** Table/resource name passed to the adapter. |
-| `columns` | `string[] \| {field, label, render?}[]` | `[]` | Column definitions. Each column may include a `render(value, row, context)` callback. Auto-discovered from adapter if omitted. |
+| `columns` | `string[] \| {field, label, render?}[] \| 'dom'` | `[]` | Column definitions. Each column may include a `render(value, row, context)` callback. Pass `'dom'` to read columns from `<th data-field>` elements already in the container (see [DOM Column Config](#dom-column-config)). Auto-discovered from adapter if omitted. |
 | `filters` | `string[]` | `[]` | Fields to enable text filtering on. No filter input if omitted. |
 | `plugins` | `object[]` | `[]` | Plugin objects with an optional `init(grid)` method. |
 | `customClickHandlers` | `{selector, callback}[]` | `[]` | Delegated click handlers tied to CSS selectors inside the table. |
@@ -304,6 +306,48 @@ const grid = new StreamGrid('#grid', {
     },
 });
 ```
+
+---
+
+## DOM Column Config
+
+Inspired by DataTables, StreamGrid can read column definitions directly from `<th>` elements already present in the container. Pass `columns: 'dom'` and annotate your header cells with `data-*` attributes:
+
+```html
+<div id="grid">
+  <table>
+    <thead>
+      <tr>
+        <th data-field="name"  data-sg-label="Full Name" data-sg-filter>Name</th>
+        <th data-field="age"   data-sg-sorter="number">Age</th>
+        <th data-field="email" data-sg-sortable="false" data-sg-filter>Email</th>
+        <th data-field="sku"   data-sg-width="100px">SKU</th>
+      </tr>
+    </thead>
+  </table>
+</div>
+```
+
+```js
+const grid = new StreamGrid('#grid', {
+    dataAdapter: myAdapter,
+    table: 'users',
+    columns: 'dom',
+});
+```
+
+### `data-*` attribute reference
+
+| Attribute          | Description                                                              | Default              |
+|--------------------|--------------------------------------------------------------------------|----------------------|
+| `data-field`       | Key name in the data object. **Required** — grid throws if missing.      | —                    |
+| `data-sg-label`    | Column header text. Falls back to `th.textContent`, then `data-field`.   | `th.textContent`     |
+| `data-sg-sortable` | Set to `"false"` to disable sorting on this column.                      | sortable             |
+| `data-sg-sorter`   | Sort type: `"string"`, `"number"`, or `"date"`.                          | `"string"`           |
+| `data-sg-filter`   | Boolean attribute. When present, adds this field to `grid.filters`.      | absent (no filter)   |
+| `data-sg-width`    | CSS width value (e.g. `"120px"`, `"10%"`).                               | auto                 |
+
+> **Note:** if no `<thead>` or no `<th>` elements are found, StreamGrid emits a console warning and falls back to adapter column auto-discovery.
 
 ---
 
