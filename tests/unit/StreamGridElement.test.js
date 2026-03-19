@@ -116,14 +116,35 @@ describe('StreamGrid Web Component', function () {
             expect(ctor).to.equal(StreamGridColumn);
         });
 
-        it('has no connected/disconnected lifecycle side-effects', () => {
-            expect(StreamGridColumn.prototype.connectedCallback).to.be.undefined;
-            expect(StreamGridColumn.prototype.disconnectedCallback).to.be.undefined;
-            // Verify that getting/removing from DOM raises no errors
-            const { fixture } = makeHost({});
+        it('notifies closest <stream-grid> parent on connect and disconnect', async () => {
+            // Build a connected parent so closest() can find it
+            const { el } = makeHost({ src: 'http://api.test/data', table: 'items' });
+            await flushMicrotasks();
+            const spy = sinon.spy(el, '_scheduleReinit');
+
             const col = document.createElement('stream-grid-column');
-            fixture.appendChild(col);
-            fixture.removeChild(col);
+            col.setAttribute('field', 'email');
+            el.appendChild(col);           // connectedCallback → _scheduleReinit
+            await flushMicrotasks();
+
+            el.removeChild(col);           // disconnectedCallback → _scheduleReinit
+            await flushMicrotasks();
+
+            expect(spy.callCount).to.be.at.least(2);
+        });
+
+        it('attribute change on a connected column notifies the parent <stream-grid>', async () => {
+            const { el } = makeHost({ src: 'http://api.test/data', table: 'items' });
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'name');
+            el.appendChild(col);
+            await flushMicrotasks();
+
+            const spy = sinon.spy(el, '_reinit');
+            col.setAttribute('label', 'Full Name');   // attributeChangedCallback → _scheduleReinit → _reinit
+            await flushMicrotasks();
+
+            expect(spy.callCount).to.equal(1);
         });
     });
 
@@ -176,21 +197,24 @@ describe('StreamGrid Web Component', function () {
             expect(el.id).to.equal('my-custom-id');
         });
 
-        it('element.grid is a StreamGrid instance after connection (with src)', () => {
+        it('element.grid is a StreamGrid instance after connection (with src)', async () => {
             const { el } = makeHost({ src: 'http://api.test/data', table: 'items' });
+            await flushMicrotasks();
             expect(el.grid).to.be.instanceof(StreamGrid);
         });
 
-        it('element.grid is null after connection with no src (fallback)', () => {
+        it('element.grid is null after connection with no src (fallback)', async () => {
             const warnStub = sinon.stub(console, 'warn');
             const { el } = makeHost({});
+            await flushMicrotasks();
             warnStub.restore();
             expect(el.grid).to.be.null;
         });
 
-        it('console.warn is called when no src is provided', () => {
+        it('console.warn is called when no src is provided', async () => {
             const warnStub = sinon.stub(console, 'warn');
             makeHost({});
+            await flushMicrotasks();
             expect(warnStub.calledOnce).to.be.true;
             expect(warnStub.firstCall.args[0]).to.include('no data source');
             warnStub.restore();
@@ -397,6 +421,7 @@ describe('StreamGrid Web Component', function () {
     describe('StreamGridElement — src swap semantics', () => {
         it('changing src replaces element.grid with a new StreamGrid instance', async () => {
             const { el } = makeHost({ src: 'http://api.test/v1', table: 'items' });
+            await flushMicrotasks();
             const oldGrid = el.grid;
             el.setAttribute('src', 'http://api.test/v2');
             await flushMicrotasks();
@@ -406,6 +431,7 @@ describe('StreamGrid Web Component', function () {
 
         it('the new instance is not the same reference as the old one', async () => {
             const { el } = makeHost({ src: 'http://api.test/v1', table: 'a' });
+            await flushMicrotasks();
             const first = el.grid;
             el.setAttribute('src', 'http://api.test/v2');
             await flushMicrotasks();
@@ -431,11 +457,47 @@ describe('StreamGrid Web Component', function () {
     // ─────────────────────────────────────────────────────────────────────────────
 
     describe('StreamGridElement — disconnectedCallback', () => {
-        it('element.grid is null after element is removed from the DOM', () => {
+        it('element.grid is null after element is removed from the DOM', async () => {
             const { el, fixture } = makeHost({ src: 'http://api.test/data', table: 'items' });
+            await flushMicrotasks();
             expect(el.grid).to.be.instanceof(StreamGrid);
             fixture.removeChild(el);
             expect(el.grid).to.be.null;
+        });
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // StreamGridElement — dynamic column mutation
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    describe('StreamGridElement — dynamic column mutation', () => {
+        it('dynamically adding a <stream-grid-column> triggers a reinit with the new column', async () => {
+            const { el } = makeHost({ src: 'http://api.test/data', table: 'items' });
+            await flushMicrotasks();
+
+            const spy = sinon.spy(el, '_reinit');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'email');
+            el.appendChild(col);
+            await flushMicrotasks();
+
+            expect(spy.callCount).to.equal(1);
+            expect(el._parseColumns().some(c => c.field === 'email')).to.be.true;
+        });
+
+        it('dynamically removing a <stream-grid-column> triggers a reinit without that column', async () => {
+            const { el } = makeHost({ src: 'http://api.test/data', table: 'items' });
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'email');
+            el.appendChild(col);
+            await flushMicrotasks();
+
+            const spy = sinon.spy(el, '_reinit');
+            el.removeChild(col);
+            await flushMicrotasks();
+
+            expect(spy.callCount).to.equal(1);
+            expect(el._parseColumns().some(c => c.field === 'email')).to.be.false;
         });
     });
 
