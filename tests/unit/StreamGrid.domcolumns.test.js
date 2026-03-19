@@ -9,7 +9,6 @@ import sinon from 'sinon';
 
 describe('StreamGrid — columns: "dom"', () => {
     let dom;
-    let container;
 
     beforeEach(() => {
         dom = new JSDOM('<!doctype html><html><body></body></html>');
@@ -345,7 +344,6 @@ describe('StreamGrid — columns: "dom"', () => {
 
     it('columns: "dom" does not interfere with existing columns: [...] path', () => {
         makeContainer('<div id="sg-test2"></div>');
-        const container2 = document.getElementById('sg-test2');
         // This should work exactly as before — no DOM parsing when columns is an array
         const grid = new StreamGrid('#sg-test2', {
             dataAdapter: makeAdapter(),

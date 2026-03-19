@@ -1,3 +1,5 @@
+// StreamGridElement — custom element <stream-grid> that wraps StreamGrid for declarative HTML-first usage.
+
 import { StreamGrid } from '../StreamGrid.js';
 import { RestApiAdapter } from '../dataAdapter/RestApiAdapter.js';
 
@@ -5,7 +7,17 @@ import { RestApiAdapter } from '../dataAdapter/RestApiAdapter.js';
 // stable, predictable IDs.
 let _idCounter = 0;
 
+/**
+ * Custom element `<stream-grid>` — configuration-first wrapper around {@link StreamGrid}.
+ * Reads data source, pagination, and filter settings from HTML attributes; reads column
+ * definitions from `<stream-grid-column>` children. Creates and replaces the inner
+ * StreamGrid instance as the element connects, disconnects, or its attributes change.
+ */
 export class StreamGridElement extends HTMLElement {
+    /**
+     * Attribute names that trigger `attributeChangedCallback` when modified.
+     * @type {string[]}
+     */
     static get observedAttributes() {
         return [
             'src',
@@ -18,6 +30,11 @@ export class StreamGridElement extends HTMLElement {
         ];
     }
 
+    /**
+     * Initialises internal state. The StreamGrid instance is deferred to
+     * `connectedCallback` so that child `<stream-grid-column>` elements are already
+     * in the parsed DOM when column discovery runs.
+     */
     constructor() {
         super();
         this._grid = null;
@@ -25,6 +42,11 @@ export class StreamGridElement extends HTMLElement {
         this._generation = 0;
     }
 
+    /**
+     * Called when the element is inserted into the document.
+     * Assigns a stable host id if none is present, then triggers a full grid initialisation.
+     * @returns {void}
+     */
     connectedCallback() {
         if (!this.id) {
             this.id = 'sg-host-' + (++_idCounter);
@@ -32,10 +54,24 @@ export class StreamGridElement extends HTMLElement {
         this._reinit();
     }
 
+    /**
+     * Called when the element is removed from the document.
+     * Releases the reference to the inner StreamGrid instance.
+     * @returns {void}
+     */
     disconnectedCallback() {
         this._grid = null;
     }
 
+    /**
+     * Called when an observed attribute is added, changed, or removed.
+     * Schedules a re-initialisation via microtask to coalesce rapid successive changes
+     * (e.g. multiple attributes set in the same script tick).
+     * @param {string}      name     - Attribute name.
+     * @param {string|null} oldValue - Previous attribute value.
+     * @param {string|null} newValue - New attribute value.
+     * @returns {void}
+     */
     attributeChangedCallback(name, oldValue, newValue) {
         if (oldValue === newValue) return;
         if (!this.isConnected) return;
@@ -48,12 +84,24 @@ export class StreamGridElement extends HTMLElement {
         });
     }
 
+    /**
+     * The underlying StreamGrid instance, or `null` before the first connection or
+     * when no valid data source is configured.
+     * @type {StreamGrid|null}
+     */
     get grid() {
         return this._grid;
     }
 
     // ── Private ────────────────────────────────────────────────────────────────
 
+    /**
+     * Tears down any existing grid DOM, builds a fresh options object from current
+     * attribute and child state, and constructs a new StreamGrid instance. Includes
+     * a generation counter so that stale calls are discarded if a newer reinit fires
+     * before async work completes.
+     * @returns {void}
+     */
     _reinit() {
         const gen = ++this._generation;
         const options = this._buildOptions();
@@ -72,6 +120,12 @@ export class StreamGridElement extends HTMLElement {
         this._grid = new StreamGrid('#' + this.id, options);
     }
 
+    /**
+     * Assembles the full StreamGrid options object from parsed attributes and column
+     * children. Extracts the `filters` array from columns carrying the internal
+     * `_filter` flag, then strips that flag before passing columns to StreamGrid.
+     * @returns {object} Options object suitable for the StreamGrid constructor.
+     */
     _buildOptions() {
         const columns = this._parseColumns();
         const filters = columns
@@ -89,6 +143,11 @@ export class StreamGridElement extends HTMLElement {
         };
     }
 
+    /**
+     * Reads HTML attributes and converts them to StreamGrid constructor option
+     * properties. Only attributes present on the element are included.
+     * @returns {object} Partial StreamGrid options derived from element attributes.
+     */
     _parseAttributes() {
         const opts = {};
 
@@ -116,6 +175,13 @@ export class StreamGridElement extends HTMLElement {
         return opts;
     }
 
+    /**
+     * Reads direct `<stream-grid-column>` children and converts their attributes to
+     * StreamGrid column definition objects. Sets the internal `_filter` flag on any
+     * column whose element carries the boolean `filter` attribute; that flag is
+     * consumed and stripped by `_buildOptions()` before columns reach StreamGrid.
+     * @returns {Array<object>} Column definition objects; may include `_filter: true`.
+     */
     _parseColumns() {
         return Array.from(this.querySelectorAll(':scope > stream-grid-column')).map(col => {
             const def = {};

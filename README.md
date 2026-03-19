@@ -342,7 +342,7 @@ const grid = new StreamGrid('#grid', {
 |--------------------|--------------------------------------------------------------------------|----------------------|
 | `data-field`       | Key name in the data object. **Required** — grid throws if missing.      | —                    |
 | `data-sg-label`    | Column header text. Falls back to `th.textContent`, then `data-field`.   | `th.textContent`     |
-| `data-sg-sortable` | Set to `"false"` to disable sorting on this column.                      | sortable             |
+| `data-sg-sortable` | Set to `"false"` to disable sorting on this column.                      | `true`               |
 | `data-sg-sorter`   | Sort type: `"string"`, `"number"`, or `"date"`.                          | `"string"`           |
 | `data-sg-filter`   | Boolean attribute. When present, adds this field to `grid.filters`.      | absent (no filter)   |
 | `data-sg-width`    | CSS width value (e.g. `"120px"`, `"10%"`).                               | auto                 |

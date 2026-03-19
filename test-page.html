@@ -121,27 +121,41 @@
     <!-- 10) Web Component -->
     <section id="web-component-test">
       <h2>Web Component — <code>&lt;stream-grid&gt;</code></h2>
-      <p style="padding:0 16px;color:#64748b;font-size:0.88rem;margin:0 0 8px">Declarative HTML-first usage. The grid initialises from attributes alone — no <code>new StreamGrid()</code> call.</p>
+      <p style="padding:0 16px;color:#64748b;font-size:0.88rem;margin:0 0 8px">Declarative HTML-first usage. The grid
+        initialises from attributes alone — no <code>new StreamGrid()</code> call.</p>
 
       <h3 style="padding:0 16px;margin:16px 0 8px;font-size:1rem">Auto-inferred columns</h3>
-      <stream-grid
-        id="wc-auto"
-        src="http://localhost:3000"
-        table="users"
-        page-size="5"
-        filter-mode="client">
+      <stream-grid id="wc-auto" src="http://localhost:3000" table="users" page-size="5" filter-mode="client">
       </stream-grid>
 
-      <h3 style="padding:0 16px;margin:24px 0 8px;font-size:1rem">Explicit <code>&lt;stream-grid-column&gt;</code> children</h3>
-      <stream-grid
-        id="wc-explicit"
-        src="http://localhost:3000"
-        table="users"
-        page-size="5">
-        <stream-grid-column field="name"   label="Name"></stream-grid-column>
-        <stream-grid-column field="email"  label="Email"></stream-grid-column>
+      <h3 style="padding:0 16px;margin:24px 0 8px;font-size:1rem">Explicit <code>&lt;stream-grid-column&gt;</code>
+        children</h3>
+      <stream-grid id="wc-explicit" src="http://localhost:3000" table="users" page-size="5">
+        <stream-grid-column field="name" label="Name"></stream-grid-column>
+        <stream-grid-column field="email" label="Email"></stream-grid-column>
         <stream-grid-column field="status" label="Status" sortable="false"></stream-grid-column>
       </stream-grid>
+    </section>
+
+    <!-- 11) DOM Column Config -->
+    <section id="dom-columns-test">
+      <h2>DOM Column Config — <code>columns: 'dom'</code></h2>
+      <p style="padding:0 16px;color:#64748b;font-size:0.88rem;margin:0 0 8px">Column definitions are
+        read from hand-authored <code>&lt;th data-field&gt;</code> elements before the grid initialises.
+        No JS column array needed.</p>
+      <div id="dom-columns-grid" class="grid-container">
+        <table>
+          <thead>
+            <tr>
+              <th data-field="name"       data-sg-label="Full Name" data-sg-filter>Name</th>
+              <th data-field="email"      data-sg-filter data-sg-sortable="false">Email</th>
+              <th data-field="status"     data-sg-sorter="string">Status</th>
+              <th data-field="department" data-sg-filter>Department</th>
+              <th data-field="city"       data-sg-filter>City</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
     </section>
 
     <!-- 9) exportConfig demo -->
@@ -404,6 +418,16 @@
       });
       document.getElementById('export-status').textContent =
         `Restored to page ${savedSnapshot.currentPage} with filter "${savedSnapshot.currentFilterText}"`;
+    });
+
+    // ── 11) DOM Column Config demo ──────────────────────────────────────────────
+    new StreamGrid('#dom-columns-grid', {
+      dataAdapter: adapter,
+      table: 'users',
+      columns: 'dom',
+      pagination: true,
+      paginationMode: 'pages',
+      pageSize: 10,
     });
 
   </script>

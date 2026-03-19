@@ -16,7 +16,7 @@ import { SORT_COMPARATORS } from './core/sorting/sortComparators.js';
  * @param {object} options - Configuration options.
  * @param {import('./dataAdapter/BaseDataAdapter.js').BaseDataAdapter} options.dataAdapter - Data source adapter.
  * @param {string} options.table - Table/resource name passed to the adapter.
- * @param {string[]|Array<{field:string, label:string, render?:Function, sortable?:boolean, sorter?:'string'|'number'|'date'|Function}>} [options.columns=[]] - Column definitions. Each column may include a render(value, row, context) callback, sortable (default true), and a sorter type or custom comparator function.
+ * @param {string[]|Array<{field:string, label:string, render?:Function, sortable?:boolean, sorter?:'string'|'number'|'date'|Function}>|'dom'} [options.columns=[]] - Column definitions. Pass `'dom'` to read column config from `<th data-field>` elements already in the container (see `_parseColumnsFromDOM`). Otherwise pass an array of field names or column objects; each column may include a render(value, row, context) callback, sortable (default true), and a sorter type or custom comparator function.
  * @param {string[]} [options.filters=[]] - Fields to enable text filtering on. Omit to hide the filter input.
  * @param {object[]} [options.plugins=[]] - Plugin objects with an optional `init(grid)` method.
  * @param {Array<{selector:string, callback:Function}>} [options.customClickHandlers=[]] - Delegated click handlers.
