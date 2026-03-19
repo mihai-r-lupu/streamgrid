@@ -264,6 +264,8 @@ export class StreamGrid {
      * in memory before appending once to avoid intermediate reflows.
      */
     _buildStaticLayout() {
+        this.container.innerHTML = '';
+
         this.controlsContainer = document.createElement('div');
         this.controlsContainer.className = 'sg-controls';
         if (this.filters.length) {
