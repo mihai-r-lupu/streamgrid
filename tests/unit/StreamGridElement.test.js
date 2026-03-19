@@ -439,4 +439,97 @@ describe('StreamGrid Web Component', function () {
         });
     });
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // StreamGridElement — Phase A: sorter and filter attributes
+    // ─────────────────────────────────────────────────────────────────────────
+
+    describe('StreamGridElement — Phase A: sorter and filter attributes', () => {
+
+        it('passes sorter attribute on <stream-grid-column> to column definition', () => {
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'name');
+            col.setAttribute('sorter', 'string');
+            el.appendChild(col);
+            const opts = el._buildOptions();
+            expect(opts.columns[0].sorter).to.equal('string');
+        });
+
+        it('passes sorter="number" to the columns array', () => {
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'age');
+            col.setAttribute('sorter', 'number');
+            el.appendChild(col);
+            const opts = el._buildOptions();
+            expect(opts.columns[0].sorter).to.equal('number');
+        });
+
+        it('passes sorter="date" to the columns array', () => {
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'joined');
+            col.setAttribute('sorter', 'date');
+            el.appendChild(col);
+            const opts = el._buildOptions();
+            expect(opts.columns[0].sorter).to.equal('date');
+        });
+
+        it('filter attribute on <stream-grid-column> adds field to options.filters', () => {
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'email');
+            col.setAttribute('filter', '');
+            el.appendChild(col);
+            const opts = el._buildOptions();
+            expect(opts.filters).to.deep.equal(['email']);
+        });
+
+        it('filter attribute on multiple columns builds a filters array with all fields', () => {
+            const el = document.createElement('stream-grid');
+            const fields = ['name', 'email', 'status'];
+            fields.forEach(f => {
+                const col = document.createElement('stream-grid-column');
+                col.setAttribute('field', f);
+                col.setAttribute('filter', '');
+                el.appendChild(col);
+            });
+            const opts = el._buildOptions();
+            expect(opts.filters).to.deep.equal(['name', 'email', 'status']);
+        });
+
+        it('columns without filter attribute are not added to filters array', () => {
+            const el = document.createElement('stream-grid');
+            const withFilter = document.createElement('stream-grid-column');
+            withFilter.setAttribute('field', 'email');
+            withFilter.setAttribute('filter', '');
+            const withoutFilter = document.createElement('stream-grid-column');
+            withoutFilter.setAttribute('field', 'name');
+            el.appendChild(withFilter);
+            el.appendChild(withoutFilter);
+            const opts = el._buildOptions();
+            expect(opts.filters).to.deep.equal(['email']);
+        });
+
+        it('filters array is absent from options when no column has filter attribute', () => {
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'name');
+            el.appendChild(col);
+            const opts = el._buildOptions();
+            expect(opts).to.not.have.property('filters');
+        });
+
+        it('_filter flag is not present on column definitions passed to StreamGrid', () => {
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'email');
+            col.setAttribute('filter', '');
+            el.appendChild(col);
+            const opts = el._buildOptions();
+            expect(opts.columns[0]).to.not.have.property('_filter');
+        });
+
+    });
+
 }); // describe('StreamGrid Web Component')

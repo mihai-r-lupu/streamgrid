@@ -105,6 +105,86 @@ This renders a table inside `#example-container`, fetching data from the REST AP
 
 ---
 
+## Three Ways to Configure Columns
+
+StreamGrid supports three distinct entry points for declaring columns. Choose whatever fits your workflow.
+
+### 1 — JS array (programmatic)
+
+Pass an array of field names or column objects directly in the constructor. Ideal when column config lives in JavaScript:
+
+```js
+const grid = new StreamGrid('#grid', {
+  dataAdapter: myAdapter,
+  table: 'users',
+  columns: [
+    { field: 'name',  label: 'Full Name' },
+    { field: 'email', label: 'Email', sortable: false },
+    { field: 'age',   label: 'Age',   sorter: 'number' },
+  ],
+  filters: ['name', 'email'],
+});
+```
+
+### 2 — Web Component declarative (`<stream-grid-column>`)
+
+When using the `<stream-grid>` custom element, declare columns as child elements. StreamGrid reads them at connection time:
+
+```html
+<stream-grid src="https://api.example.com/users" table="users" page-size="10">
+  <stream-grid-column field="name"  label="Full Name" filter></stream-grid-column>
+  <stream-grid-column field="email" label="Email"     filter sortable="false"></stream-grid-column>
+  <stream-grid-column field="age"   label="Age"       sorter="number"></stream-grid-column>
+</stream-grid>
+```
+
+| Attribute  | Description                                                  |
+|------------|--------------------------------------------------------------|
+| `field`    | Data key. Required.                                          |
+| `label`    | Header text.                                                 |
+| `sortable` | `"false"` to disable sorting.                                |
+| `width`    | CSS width (e.g. `"120px"`).                                  |
+| `sorter`   | `"string"` / `"number"` / `"date"`.                         |
+| `filter`   | Boolean. Present = add field to `filters`.                   |
+
+### 3 — DOM `<th>` elements (`columns: 'dom'`)
+
+Pre-author a `<thead>` in your container markup and pass `columns: 'dom'`. StreamGrid reads the `<th>` elements before clearing the container for its own layout. Inspired by DataTables:
+
+```html
+<div id="grid">
+  <table>
+    <thead>
+      <tr>
+        <th data-field="name"  data-sg-label="Full Name" data-sg-filter>Name</th>
+        <th data-field="email" data-sg-filter data-sg-sortable="false">Email</th>
+        <th data-field="age"   data-sg-sorter="number">Age</th>
+        <th data-field="sku"   data-sg-width="100px">SKU</th>
+      </tr>
+    </thead>
+  </table>
+</div>
+```
+
+```js
+const grid = new StreamGrid('#grid', {
+  dataAdapter: myAdapter,
+  table: 'users',
+  columns: 'dom',
+});
+```
+
+| `data-*` attribute | Description                                                  |
+|--------------------|--------------------------------------------------------------|
+| `data-field`       | Data key. **Required** — throws if absent.                   |
+| `data-sg-label`    | Header text. Falls back to `th.textContent`, then `data-field`. |
+| `data-sg-sortable` | `"false"` to disable sorting.                                |
+| `data-sg-sorter`   | `"string"` / `"number"` / `"date"`.                         |
+| `data-sg-filter`   | Boolean attribute. Present = add field to `filters`.         |
+| `data-sg-width`    | CSS width (e.g. `"120px"`).                                  |
+
+---
+
 ## Key Concepts
 
 - **Data Adapter** — connects StreamGrid to a backend data source (e.g. `RestApiAdapter`)
