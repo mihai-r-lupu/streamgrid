@@ -47,6 +47,29 @@ For datasets above `clientFilterThreshold` (default 1,000), `filterMode: 'auto'`
 
 ---
 
+## Caching with CacheAdapter
+
+For repeated requests to the same endpoint, wrap your adapter with `CacheAdapter` to avoid redundant network calls:
+
+```javascript
+import { CacheAdapter } from './src/dataAdapter/CacheAdapter.js';
+import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
+
+const adapter = new CacheAdapter(
+    new RestApiAdapter({ baseUrl: 'https://api.example.com' }),
+    { ttl: 30000, maxEntries: 100 }
+);
+```
+
+- **TTL (Time-To-Live)** controls how long results stay in memory before expiring
+- **In-flight deduplication** prevents duplicate simultaneous requests for the same cache key
+- **LRU eviction** limits memory usage with `maxEntries`
+- **Automatic invalidation** on writes (`insertRow`, `updateRow`, `deleteRow`) clears the table's cache entries
+
+See [Adapters.md](Adapters.md) for full `CacheAdapter` options.
+
+---
+
 ## Rough Sizing Guidelines
 
 | Row count | Approach |

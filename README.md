@@ -1,6 +1,6 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-245%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-299%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
@@ -20,23 +20,6 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions, trade-off
 ---
 
 ## Installation
-
-Clone the repository and install dev dependencies:
-
-```bash
-git clone https://github.com/mihai-r-lupu/streamgrid.git
-cd streamgrid
-npm install
-```
-
-Import directly as an ES Module — no bundler required:
-
-```js
-import { StreamGrid } from './src/StreamGrid.js';
-import { RestApiAdapter } from './src/dataAdapter/RestApiAdapter.js';
-```
-
----
 
 Clone the repository and install dev dependencies:
 
@@ -559,17 +542,28 @@ See [docs/Adapters.md](docs/Adapters.md) for full `CacheAdapter` options.
 
 ## Testing
 
+StreamGrid has **299 tests** — 248 unit tests and 51 end-to-end tests.
+
 **Unit tests** (Mocha + Chai, JSDOM — no browser required):
 
 ```bash
-npm run test:unit
+npm run test:unit      # 248 tests
 ```
 
 **End-to-end tests** (Playwright — server starts automatically):
 
 ```bash
-npm run test:e2e
+npm run test:e2e       # 51 tests across Chromium, Firefox, and WebKit
 ```
+
+The E2E suite uses Page Object Model with custom Playwright fixtures and includes:
+
+- **Accessibility** — automated WCAG audits via axe-core on every grid variant
+- **Visual regression** — pixel-diff baseline screenshots that catch CSS regressions
+- **API-layer validation** — Playwright `request` context tests against the REST endpoint
+- **Network resilience** — route interception tests for empty data, slow responses, and 500 errors
+- **Performance budgets** — render time and DOM node count assertions
+- **Test tags** — run `npx playwright test --grep "@smoke"` for a 9-test critical-path subset (~14s)
 
 Playwright auto-starts json-server via the `webServer` config. To keep the server running for manual testing as well:
 

@@ -50,9 +50,53 @@ Both are needed. Hooks let plugins modify the grid's internal pipeline; events l
 
 - **No TypeScript.** JSDoc annotations on the constructor, every public method, and the base adapter class provide equivalent type information without requiring a compilation step. This is a deliberate trade-off: simpler contribution and consumption at the cost of IDE inference being slightly less precise.
 
-- **No sorting UI.** The adapter pattern means consumers can pass pre-sorted data from the server, or add sort parameters to their adapter's query config. A built-in sort UI would expand scope without demonstrating a new concept.
+- **No sorting UI.** ~~The adapter pattern means consumers can pass pre-sorted data from the server.~~ *Update:* StreamGrid now includes a full sorting UI. Column headers are clickable (click to cycle asc → desc → clear, Shift+click for multi-column stacking). Sort mode follows the same `'auto'` / `'client'` / `'server'` pattern as filtering, with a configurable `clientSortThreshold`. Built-in `sorter` types (`'string'`, `'number'`, `'date'`) cover common cases; a custom `(a, b) => number` comparator covers the rest.
 
 - **No virtual scrolling.** Pagination and infinite scroll cover the same performance use case more simply. Virtual scrolling adds DOM recycling complexity that is only justified at 100K+ row counts — a tier that should use server-side pagination anyway.
+
+---
+
+## CacheAdapter — Transparent LRU Caching
+
+`CacheAdapter` is a decorator that wraps any adapter implementing the `BaseDataAdapter` contract. It adds an LRU cache with configurable TTL and max entries, in-flight request deduplication, and automatic cache invalidation on writes (`insertRow`, `updateRow`, `deleteRow`).
+
+The design follows the Decorator Pattern: `CacheAdapter` implements the same five-method interface, so the grid — and any code that depends on the adapter contract — sees no difference. Caching is a cross-cutting concern layered on top, not baked into the adapter or the grid.
+
+Cache keys are derived from the table name and the full options object (serialised via `JSON.stringify`), making each unique combination of pagination, filter, and sort parameters a separate cache entry.
+
+---
+
+## Column Render Callbacks
+
+Each column definition accepts an optional `render(value, row, context)` function that controls cell content. The callback can return a string (set as `innerHTML`), a DOM node (appended via `appendChild`), or `null` to fall back to plain text.
+
+The `html` tagged template literal (exported from `src/utils/html.js`) escapes all interpolated values, preventing XSS when building HTML strings from user data. Returning a DOM node is the alternative for cases that require event listeners or complex element trees.
+
+An `onRenderError` option centralises error handling: if a render callback throws or returns an unexpected type, the handler is called and the cell falls back safely. This prevents a single broken column from crashing the entire table render.
+
+---
+
+## Web Component
+
+StreamGrid ships as a pair of custom elements — `<stream-grid>` and `<stream-grid-column>` — that wrap the core grid in a declarative HTML-first API.
+
+`StreamGridElement` (`<stream-grid>`) owns the lifecycle: `connectedCallback` reads attributes, constructs a `RestApiAdapter` from `src`, builds an options object, and instantiates a `StreamGrid` inside itself. Attribute changes trigger a debounced `_scheduleReinit()` via `queueMicrotask`, which coalesces multiple synchronous attribute sets (e.g. during HTML parse of several `<stream-grid-column>` children) into a single reconstruction.
+
+`StreamGridColumn` (`<stream-grid-column>`) is a child element that notifies its closest `<stream-grid>` parent on connect, disconnect, and attribute change. The parent's `_scheduleReinit` re-reads all child columns and rebuilds the grid. A `_reiniting` guard prevents infinite loops during the column save/restore cycle that preserves children across `innerHTML = ''`.
+
+The `element.grid` property exposes the underlying `StreamGrid` instance for programmatic control — event subscription, plugin registration, and render callback attachment — bridging declarative HTML setup with imperative JS when needed.
+
+---
+
+## Test Architecture
+
+The test suite has two layers:
+
+**Unit tests** (248 tests, Mocha + Chai + JSDOM + Sinon) run entirely in Node.js with no browser. They cover every public method, adapter, event emitter, hook manager, filter engine, paginator, and web component lifecycle. JSDOM provides enough DOM surface for custom elements, `connectedCallback`, and `attributeChangedCallback`.
+
+**End-to-end tests** (51 tests, Playwright) run against a real browser with a live json-server backend. The suite uses Page Object Model: three page object classes (`GridPage`, `CacheGridPage`, `ExportGridPage`) centralise selectors and interaction methods, exposed via custom Playwright fixtures. Tests are tagged `@smoke` (9 critical-path tests, ~14s) and `@regression` for CI gating.
+
+The E2E suite covers six categories beyond functional correctness: accessibility audits (axe-core WCAG scans), visual regression (pixel-diff baseline screenshots), API-layer validation (Playwright `request` context), network resilience (route interception for empty data, slow responses, 500 errors), performance budgets (render time and DOM node count thresholds), and cross-browser execution (Chromium, Firefox, WebKit via `playwright.config.js` projects).
 
 ---
 
