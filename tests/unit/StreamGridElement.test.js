@@ -594,4 +594,90 @@ describe('StreamGrid Web Component', function () {
 
     });
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // StreamGridElement — declarative template rendering
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    describe('StreamGridElement — declarative template rendering', () => {
+
+        it('template attribute synthesises a render function on the column definition', () => {
+            const tpl = document.createElement('template');
+            tpl.id = 'test-tpl';
+            tpl.innerHTML = '<span>{{value}}</span>';
+            document.body.appendChild(tpl);
+
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'status');
+            col.setAttribute('template', 'test-tpl');
+            el.appendChild(col);
+
+            const cols = el._parseColumns();
+            expect(cols[0]).to.have.property('render');
+            expect(cols[0].render).to.be.a('function');
+        });
+
+        it('render function escapes interpolated values (XSS safe)', () => {
+            const tpl = document.createElement('template');
+            tpl.id = 'xss-tpl';
+            tpl.innerHTML = '<span class="badge">{{value}}</span>';
+            document.body.appendChild(tpl);
+
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'status');
+            col.setAttribute('template', 'xss-tpl');
+            el.appendChild(col);
+
+            const cols = el._parseColumns();
+            const result = cols[0].render('<script>alert("xss")</script>', {});
+            expect(result).to.equal('<span class="badge">&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;</span>');
+            expect(result).to.not.contain('<script>');
+        });
+
+        it('render function substitutes {{row.field}} tokens with escaped values', () => {
+            const tpl = document.createElement('template');
+            tpl.id = 'row-tpl';
+            tpl.innerHTML = '<a href="/users/{{row.id}}">{{value}}</a>';
+            document.body.appendChild(tpl);
+
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'name');
+            col.setAttribute('template', 'row-tpl');
+            el.appendChild(col);
+
+            const cols = el._parseColumns();
+            const result = cols[0].render('Alice', { id: 42, name: 'Alice' });
+            expect(result).to.equal('<a href="/users/42">Alice</a>');
+        });
+
+        it('missing template ID falls back to plain value display (no render function)', () => {
+            const warnStub = sinon.stub(console, 'warn');
+
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'status');
+            col.setAttribute('template', 'nonexistent-tpl');
+            el.appendChild(col);
+
+            const cols = el._parseColumns();
+            expect(cols[0]).to.not.have.property('render');
+            expect(warnStub.calledOnce).to.be.true;
+            expect(warnStub.firstCall.args[0]).to.include('nonexistent-tpl');
+
+            warnStub.restore();
+        });
+
+        it('column without template attribute has no render function', () => {
+            const el = document.createElement('stream-grid');
+            const col = document.createElement('stream-grid-column');
+            col.setAttribute('field', 'name');
+            el.appendChild(col);
+
+            const cols = el._parseColumns();
+            expect(cols[0]).to.not.have.property('render');
+        });
+    });
+
 }); // describe('StreamGrid Web Component')

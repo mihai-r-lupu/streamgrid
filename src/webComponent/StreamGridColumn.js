@@ -17,6 +17,7 @@
  *   width    — maps to column.width (CSS value, e.g. "120px")
  *   sorter   — "string" / "number" / "date"
  *   filter   — boolean attribute; present = add field to filters array
+ *   template — ID of a <template> element; enables declarative cell rendering
  */
 export class StreamGridColumn extends HTMLElement {
     /**
@@ -25,7 +26,7 @@ export class StreamGridColumn extends HTMLElement {
      * @type {string[]}
      */
     static get observedAttributes() {
-        return ['field', 'label', 'sortable', 'width', 'sorter', 'filter'];
+        return ['field', 'label', 'sortable', 'width', 'sorter', 'filter', 'template'];
     }
 
     /**

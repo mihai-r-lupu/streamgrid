@@ -2,6 +2,7 @@
 
 import { StreamGrid } from '../StreamGrid.js';
 import { RestApiAdapter } from '../dataAdapter/RestApiAdapter.js';
+import { escapeHtml } from '../utils/html.js';
 
 // Deterministic counter for host element IDs. Not Math.random() — tests need
 // stable, predictable IDs.
@@ -238,6 +239,26 @@ export class StreamGridElement extends HTMLElement {
 
                 // _filter is a temporary flag consumed and stripped by _buildOptions().
                 if (col.hasAttribute('filter')) def._filter = true;
+
+                // Declarative cell rendering via <template> reference.
+                // The template HTML is captured once at parse time into a closure;
+                // the synthesised render function reuses this snapshot on every call.
+                const templateAttr = col.getAttribute('template');
+                if (templateAttr != null) {
+                    const tplEl = document.getElementById(templateAttr);
+                    if (tplEl) {
+                        const tplHtml = tplEl.innerHTML;
+                        def.render = (value, row) =>
+                            tplHtml
+                                .replace(/\{\{value\}\}/g, escapeHtml(value))
+                                .replace(/\{\{row\.([a-zA-Z0-9_]+)\}\}/g, (_, key) =>
+                                    escapeHtml(row[key]));
+                    } else {
+                        console.warn(
+                            `[stream-grid] <template id="${escapeHtml(templateAttr)}"> not found`
+                        );
+                    }
+                }
 
                 return def;
             });
