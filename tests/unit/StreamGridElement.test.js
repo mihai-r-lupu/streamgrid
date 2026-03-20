@@ -120,17 +120,17 @@ describe('StreamGrid Web Component', function () {
             // Build a connected parent so closest() can find it
             const { el } = makeHost({ src: 'http://api.test/data', table: 'items' });
             await flushMicrotasks();
-            const spy = sinon.spy(el, '_scheduleReinit');
+            const spy = sinon.spy(el, '_reinit');
 
             const col = document.createElement('stream-grid-column');
             col.setAttribute('field', 'email');
-            el.appendChild(col);           // connectedCallback → _scheduleReinit
+            el.appendChild(col);           // connectedCallback → _scheduleReinit → _reinit
             await flushMicrotasks();
 
-            el.removeChild(col);           // disconnectedCallback → _scheduleReinit
+            el.removeChild(col);           // disconnectedCallback → _scheduleReinit → _reinit
             await flushMicrotasks();
 
-            expect(spy.callCount).to.be.at.least(2);
+            expect(spy.callCount).to.equal(2);
         });
 
         it('attribute change on a connected column notifies the parent <stream-grid>', async () => {

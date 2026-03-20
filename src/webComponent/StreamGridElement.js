@@ -219,28 +219,28 @@ export class StreamGridElement extends HTMLElement {
         return Array.from(this.children)
             .filter(el => el.matches('stream-grid-column'))
             .map(col => {
-            const def = {};
+                const def = {};
 
-            const field = col.getAttribute('field');
-            if (field != null) def.field = field;
+                const field = col.getAttribute('field');
+                if (field != null) def.field = field;
 
-            const label = col.getAttribute('label');
-            if (label != null) def.label = label;
+                const label = col.getAttribute('label');
+                if (label != null) def.label = label;
 
-            const sortable = col.getAttribute('sortable');
-            if (sortable === 'false') def.sortable = false;
+                const sortable = col.getAttribute('sortable');
+                if (sortable === 'false') def.sortable = false;
 
-            const width = col.getAttribute('width');
-            if (width != null) def.width = width;
+                const width = col.getAttribute('width');
+                if (width != null) def.width = width;
 
-            const sorter = col.getAttribute('sorter');
-            if (sorter != null) def.sorter = sorter;
+                const sorter = col.getAttribute('sorter');
+                if (sorter != null) def.sorter = sorter;
 
-            // _filter is a temporary flag consumed and stripped by _buildOptions().
-            if (col.hasAttribute('filter')) def._filter = true;
+                // _filter is a temporary flag consumed and stripped by _buildOptions().
+                if (col.hasAttribute('filter')) def._filter = true;
 
-            return def;
-        });
+                return def;
+            });
     }
 }
 
