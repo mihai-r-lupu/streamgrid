@@ -1,0 +1,44 @@
+[
+  {
+    "id": "foundation",
+    "name": "Foundation — Core Grid Engine",
+    "status": "completed",
+    "completedDate": "2025-04",
+    "description": "Loading state (shimmer), empty state, column render callbacks, column sorting with multi-column support. Four foundational gaps closed — the threshold between prototype and usable library."
+  },
+  {
+    "id": "top-20",
+    "name": "Top-20 Improvements (6 of 20)",
+    "status": "completed",
+    "completedDate": "2025-06",
+    "description": "Web Component API (<stream-grid>/<stream-grid-column>), CacheAdapter with LRU + dedup, declarative DOM config (columns: 'dom'), exportConfig() for state serialization, multi-column sorting, and column render callbacks."
+  },
+  {
+    "id": "impression",
+    "name": "Impression Maximizer (9 wins)",
+    "status": "completed",
+    "completedDate": "2025-06",
+    "description": "All quick and medium wins shipped: filterEngine unit tests, dead mock branch fix, Adapters.md fix, debug comment cleanup, package.json metadata, README badges + module map, auto-switching behavioral test, GitHub Pages demos, ARCHITECTURE.md."
+  },
+  {
+    "id": "template",
+    "name": "Declarative Template Rendering",
+    "status": "completed",
+    "completedDate": "2025-07",
+    "description": "{{value}} and {{row.field}} interpolation in <template> elements with XSS-safe escapeHtml() protection. Works on both <stream-grid> and <stream-grid-column> elements."
+  },
+  {
+    "id": "server-pagination",
+    "name": "Server-Side Pagination & Sorting",
+    "status": "completed",
+    "completedDate": "2025-05",
+    "description": "Full server-side support for pagination, filtering, and sorting via RestApiAdapter query builders. Auto-switching between client and server modes based on configurable thresholds."
+  },
+  {
+    "id": "304-tests",
+    "name": "304 Tests Milestone",
+    "status": "completed",
+    "completedDate": "2025-07",
+    "description": "253 unit tests (Mocha + Chai + JSDOM + Sinon) and 51 E2E tests (Playwright) covering all core features, adapters, events, hooks, plugins, and web component behavior."
+  }
+]

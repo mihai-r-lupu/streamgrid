@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamGrid — Product Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <header id="header">
+    <div class="header-main">
+      <div class="header-identity">
+        <h1 id="plugin-name">StreamGrid</h1>
+        <span id="plugin-version" class="badge badge-version"></span>
+        <span id="plugin-status" class="badge"></span>
+        <span id="plugin-distribution" class="badge"></span>
+      </div>
+      <div class="header-meta">
+        <span id="plugin-company"></span>
+        <span class="sep">·</span>
+        <span id="plugin-license"></span>
+        <span class="sep">·</span>
+        <span id="plugin-updated"></span>
+      </div>
+    </div>
+    <p id="plugin-positioning" class="positioning"></p>
+    <p id="plugin-description" class="description"></p>
+    <div id="plugin-pipeline" class="pipeline"></div>
+  </header>
+
+  <nav id="nav">
+    <a href="#section-overview" class="nav-link active">Overview</a>
+    <a href="#section-features" class="nav-link">Features</a>
+    <a href="#section-components" class="nav-link">Components</a>
+    <a href="#section-capabilities" class="nav-link">Capabilities</a>
+    <a href="#section-competitive" class="nav-link">Competitive</a>
+    <a href="#section-milestones" class="nav-link">Milestones</a>
+    <a href="#section-pricing" class="nav-link">Pricing Plan</a>
+  </nav>
+
+  <main>
+    <!-- OVERVIEW -->
+    <section id="section-overview" class="section">
+      <h2>Overview</h2>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="overview-panels">
+        <div class="panel" id="scope-panel">
+          <h3>In Scope</h3>
+          <ul id="scope-in"></ul>
+        </div>
+        <div class="panel" id="out-scope-panel">
+          <h3>Out of Scope</h3>
+          <ul id="scope-out"></ul>
+        </div>
+        <div class="panel" id="audience-panel">
+          <h3>Target Audience</h3>
+          <ul id="audience-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="section-features" class="section">
+      <h2>Features</h2>
+      <div class="feature-controls">
+        <div class="filter-bar">
+          <label>Status:</label>
+          <select id="filter-status">
+            <option value="all">All</option>
+            <option value="done">Done</option>
+            <option value="planned">Planned</option>
+            <option value="deferred">Deferred</option>
+            <option value="blocked">Blocked</option>
+          </select>
+          <label>Tier:</label>
+          <select id="filter-tier">
+            <option value="all">All</option>
+            <option value="core">Core</option>
+            <option value="free">Free</option>
+            <option value="pro">Pro</option>
+          </select>
+          <label>Search:</label>
+          <input type="text" id="filter-search" placeholder="Search features…">
+        </div>
+      </div>
+      <div id="features-container"></div>
+    </section>
+
+    <!-- COMPONENTS -->
+    <section id="section-components" class="section">
+      <h2>Components</h2>
+      <div class="component-legend">
+        <span class="legend-item"><span class="dot dot-controller"></span> Controller</span>
+        <span class="legend-item"><span class="dot dot-core"></span> Core</span>
+        <span class="legend-item"><span class="dot dot-providers"></span> Providers</span>
+        <span class="legend-item"><span class="dot dot-ui"></span> UI</span>
+        <span class="legend-item"><span class="dot dot-diagnostics"></span> Diagnostics</span>
+        <span class="legend-item"><span class="dot dot-savedviews"></span> SavedViews</span>
+        <span class="legend-item"><span class="dot dot-support"></span> Support</span>
+      </div>
+      <div id="components-container"></div>
+    </section>
+
+    <!-- CAPABILITIES -->
+    <section id="section-capabilities" class="section">
+      <h2>Capability Matrix</h2>
+      <p class="section-desc">What StreamGrid supports today, and what is planned or intentionally out of scope.</p>
+      <div id="capabilities-container"></div>
+    </section>
+
+    <!-- MILESTONES -->
+    <section id="section-milestones" class="section">
+      <h2>Milestones</h2>
+      <div id="milestones-container"></div>
+    </section>
+
+    <!-- COMPETITIVE ANALYSIS -->
+    <section id="section-competitive" class="section">
+      <h2>Competitive Analysis</h2>
+      <p class="section-desc">Side-by-side feature comparison with AG-Grid, Tabulator, DataTables, Grid.js and Handsontable. Hover △ for details or click rows to expand.</p>
+      <div class="comp-legend" id="comp-legend"></div>
+      <div class="comp-tier-tabs" id="comp-tier-tabs"></div>
+      <div id="competitive-container"></div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="section-pricing" class="section">
+      <h2>Pricing Plan</h2>
+      <p class="section-desc" id="pricing-notes"></p>
+      <div class="pricing-grid" id="pricing-container"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>StreamGrid Product Dashboard · Data from <code>dashboard/data/*.json</code> · Last generated <span id="footer-date"></span></p>
+  </footer>
+
+  <script src="data-bundle.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

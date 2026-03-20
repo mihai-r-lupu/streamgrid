@@ -1,0 +1,91 @@
+{
+  "matrix": [
+    {
+      "category": "Data Loading",
+      "capabilities": [
+        { "name": "REST API data fetching", "status": "supported", "sources": ["RestApiAdapter"], "notes": "Configurable endpoints, custom headers, query builders for pagination/filtering/sorting" },
+        { "name": "Static array / inline data", "status": "supported", "sources": ["StreamGrid"], "notes": "Pass data directly via config or adapter" },
+        { "name": "LRU caching with TTL", "status": "supported", "sources": ["CacheAdapter"], "notes": "Per-table TTL overrides, in-flight request deduplication, auto-invalidation on writes" },
+        { "name": "Custom data adapters", "status": "supported", "sources": ["BaseDataAdapter"], "notes": "Extend BaseDataAdapter for any data source (Firebase, GraphQL, localStorage)" },
+        { "name": "GraphQL adapter", "status": "planned", "sources": [], "notes": "Planned additional adapter" },
+        { "name": "Firebase adapter", "status": "planned", "sources": [], "notes": "Planned additional adapter" },
+        { "name": "CSV API adapter", "status": "planned", "sources": [], "notes": "Planned additional adapter for CSV HTTP endpoints" }
+      ]
+    },
+    {
+      "category": "Pagination",
+      "capabilities": [
+        { "name": "Prev/next page navigation", "status": "supported", "sources": ["StreamGrid", "paginator"], "notes": "paginationMode: 'pages'" },
+        { "name": "Numbered page buttons", "status": "supported", "sources": ["StreamGrid", "paginationHelpers"], "notes": "paginationMode: 'numbers'. Sliding window via getPageWindow()" },
+        { "name": "Infinite scroll", "status": "supported", "sources": ["StreamGrid", "paginator"], "notes": "paginationMode: 'infinite'. loadMoreRows() public API" },
+        { "name": "Server-side pagination", "status": "supported", "sources": ["RestApiAdapter", "queryBuilder"], "notes": "_page/_limit query params, X-Total-Count header" },
+        { "name": "Configurable page size", "status": "supported", "sources": ["StreamGrid"], "notes": "pageSize option" }
+      ]
+    },
+    {
+      "category": "Filtering",
+      "capabilities": [
+        { "name": "Client-side text filtering", "status": "supported", "sources": ["filterEngine"], "notes": "Multi-field, case-insensitive substring matching" },
+        { "name": "Server-side filtering", "status": "supported", "sources": ["RestApiAdapter", "queryBuilder"], "notes": "filterMode: 'server'" },
+        { "name": "Auto-switching filter mode", "status": "supported", "sources": ["StreamGrid"], "notes": "filterMode: 'auto'. Switches at clientFilterThreshold" },
+        { "name": "Debounced filter input", "status": "supported", "sources": ["StreamGrid"], "notes": "Configurable delay via filterDebounce" },
+        { "name": "Multi-field filtering", "status": "planned", "sources": [], "notes": "Independent per-column filter logic" },
+        { "name": "Advanced filter operators", "status": "planned", "sources": [], "notes": "equals, starts-with, range, etc." }
+      ]
+    },
+    {
+      "category": "Sorting",
+      "capabilities": [
+        { "name": "Click-to-sort column headers", "status": "supported", "sources": ["StreamGrid"], "notes": "Three-click cycle: asc → desc → clear" },
+        { "name": "Multi-column sort (shift-click)", "status": "supported", "sources": ["StreamGrid", "sortComparators"], "notes": "sortStack with visual priority badges" },
+        { "name": "Built-in comparators", "status": "supported", "sources": ["sortComparators"], "notes": "string, number, date comparators" },
+        { "name": "Custom sort functions", "status": "supported", "sources": ["sortComparators"], "notes": "Per-column custom (a, b) => number" },
+        { "name": "Server-side sorting", "status": "supported", "sources": ["RestApiAdapter", "queryBuilder"], "notes": "sortMode: 'server' or auto-switching via clientSortThreshold" },
+        { "name": "Auto-switching sort mode", "status": "supported", "sources": ["StreamGrid"], "notes": "sortMode: 'auto'" }
+      ]
+    },
+    {
+      "category": "Rendering",
+      "capabilities": [
+        { "name": "HTML table rendering from config", "status": "supported", "sources": ["StreamGrid"], "notes": "Builds thead, tbody, pagination, filter UI from config object" },
+        { "name": "Column render callbacks", "status": "supported", "sources": ["StreamGrid"], "notes": "render(value, row, context) returns string, Node, or null" },
+        { "name": "Template interpolation", "status": "supported", "sources": ["StreamGridElement", "StreamGridColumn"], "notes": "{{value}}/{{row.field}} in <template> elements with XSS protection" },
+        { "name": "Loading shimmer animation", "status": "supported", "sources": ["StreamGrid", "streamgrid.css"], "notes": "Staggered CSS @keyframes shimmer. showLoading() API" },
+        { "name": "Empty state with configurable text", "status": "supported", "sources": ["StreamGrid"], "notes": "emptyText option. Two modes: empty dataset vs. filtered-no-results" },
+        { "name": "Virtual scrolling", "status": "planned", "sources": [], "notes": "Render only visible rows for massive datasets" },
+        { "name": "Diff-aware re-render", "status": "planned", "sources": [], "notes": "Patch changed rows instead of full innerHTML wipe" }
+      ]
+    },
+    {
+      "category": "Web Component",
+      "capabilities": [
+        { "name": "<stream-grid> custom element", "status": "supported", "sources": ["StreamGridElement"], "notes": "Attribute-driven: src, table, page-size, pagination-mode, filter-mode, sort-mode, template" },
+        { "name": "<stream-grid-column> declarative columns", "status": "supported", "sources": ["StreamGridColumn"], "notes": "field, label, sortable, sorter, width, filter, template attributes" },
+        { "name": "Light DOM rendering", "status": "supported", "sources": ["StreamGridElement"], "notes": "No Shadow DOM — standard CSS works. sg- namespaced classes" },
+        { "name": "element.grid escape hatch", "status": "supported", "sources": ["StreamGridElement"], "notes": "Access the underlying StreamGrid instance for programmatic control" },
+        { "name": "Child-notifies-parent reinit", "status": "supported", "sources": ["StreamGridColumn"], "notes": "Attribute changes on <stream-grid-column> trigger parent reinit via queueMicrotask" },
+        { "name": "Declarative DOM column config", "status": "supported", "sources": ["StreamGrid"], "notes": "columns: 'dom' reads <th data-field> from existing markup" }
+      ]
+    },
+    {
+      "category": "Extensibility",
+      "capabilities": [
+        { "name": "Init-time plugin system", "status": "supported", "sources": ["StreamGrid"], "notes": "plugins: [fn]. Each plugin receives grid instance at construction" },
+        { "name": "WordPress-style hooks", "status": "supported", "sources": ["HookManager"], "notes": "addAction/doAction/addFilter/applyFilters with priority ordering" },
+        { "name": "Event emitter", "status": "supported", "sources": ["EventEmitter"], "notes": "on/off/emit for lifecycle events" },
+        { "name": "Config export/import", "status": "supported", "sources": ["StreamGrid"], "notes": "exportConfig() returns JSON-safe snapshot for state persistence" },
+        { "name": "Custom query builders", "status": "supported", "sources": ["queryBuilder"], "notes": "Override buildFilterParams/buildPaginationParams/buildSortParams" }
+      ]
+    },
+    {
+      "category": "Intentionally Out of Scope",
+      "capabilities": [
+        { "name": "TypeScript / .d.ts files", "status": "not-supported", "sources": [], "notes": "JSDoc is thorough. A build step breaks the zero-dep story" },
+        { "name": "Framework bindings (React, Vue, Angular)", "status": "not-supported", "sources": [], "notes": "Web Component API works in any framework. No wrapper needed" },
+        { "name": "CSS-in-JS / theming engine", "status": "not-supported", "sources": [], "notes": "Uses CSS custom properties. Bring your own theme" },
+        { "name": "Charting / visualization", "status": "not-supported", "sources": [], "notes": "Data table only. Use a charting library alongside" },
+        { "name": "ESLint / Prettier config", "status": "not-supported", "sources": [], "notes": "Tooling noise. Focus on features" }
+      ]
+    }
+  ]
+}
