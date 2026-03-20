@@ -17,7 +17,7 @@
   },
   "scripts": {
     "test:unit": "mocha tests/unit/run-unit-tests.mjs",
-    "test:e2e": "playwright test tests/integration/streamgrid.spec.js",
+    "test:e2e": "playwright test",
     "test": "npm run test:unit && npm run test:e2e",
     "serve:test": "json-server test-db.json --port 3000 --static .",
     "demo": "json-server test-db.json --port 3000 --static . --open /test-page.html"
@@ -37,6 +37,7 @@
     "url": "https://github.com/mihai-r-lupu/streamgrid.git"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.52.0",
     "chai": "^5.2.0",
     "esm": "^3.2.25",
