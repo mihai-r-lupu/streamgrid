@@ -146,6 +146,7 @@ When using the `<stream-grid>` custom element, declare columns as child elements
 | `width`    | CSS width (e.g. `"120px"`).                                  |
 | `sorter`   | `"string"` / `"number"` / `"date"`.                         |
 | `filter`   | Boolean. Present = add field to `filters`.                   |
+| `template` | ID of a `<template>` element for declarative cell rendering. |
 
 ### 3 — DOM `<th>` elements (`columns: 'dom'`)
 

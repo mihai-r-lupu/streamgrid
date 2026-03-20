@@ -19,7 +19,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Run unit tests (248 Mocha + Chai)
+      - name: Run unit tests (253 Mocha + Chai)
         run: npm run test:unit
 
   e2e:

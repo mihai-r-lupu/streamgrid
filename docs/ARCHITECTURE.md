@@ -84,6 +84,8 @@ StreamGrid ships as a pair of custom elements — `<stream-grid>` and `<stream-g
 
 `StreamGridColumn` (`<stream-grid-column>`) is a child element that notifies its closest `<stream-grid>` parent on connect, disconnect, and attribute change. The parent's `_scheduleReinit` re-reads all child columns and rebuilds the grid. A `_reiniting` guard prevents infinite loops during the column save/restore cycle that preserves children across `innerHTML = ''`.
 
+The `template` attribute on `<stream-grid-column>` enables declarative cell rendering without JavaScript. It references a `<template>` element by ID; the template HTML is captured once at parse time and the synthesised `render` function replaces `{{value}}` and `{{row.field}}` tokens on every call. All interpolated values pass through `escapeHtml()` to prevent XSS. If the referenced template ID is not found at parse time, the column falls back to plain text display and a console warning is emitted.
+
 The `element.grid` property exposes the underlying `StreamGrid` instance for programmatic control — event subscription, plugin registration, and render callback attachment — bridging declarative HTML setup with imperative JS when needed.
 
 ---
@@ -92,7 +94,7 @@ The `element.grid` property exposes the underlying `StreamGrid` instance for pro
 
 The test suite has two layers:
 
-**Unit tests** (248 tests, Mocha + Chai + JSDOM + Sinon) run entirely in Node.js with no browser. They cover every public method, adapter, event emitter, hook manager, filter engine, paginator, and web component lifecycle. JSDOM provides enough DOM surface for custom elements, `connectedCallback`, and `attributeChangedCallback`.
+**Unit tests** (253 tests, Mocha + Chai + JSDOM + Sinon) run entirely in Node.js with no browser. They cover every public method, adapter, event emitter, hook manager, filter engine, paginator, and web component lifecycle. JSDOM provides enough DOM surface for custom elements, `connectedCallback`, and `attributeChangedCallback`.
 
 **End-to-end tests** (51 tests, Playwright) run against a real browser with a live json-server backend. The suite uses Page Object Model: three page object classes (`GridPage`, `CacheGridPage`, `ExportGridPage`) centralise selectors and interaction methods, exposed via custom Playwright fixtures. Tests are tagged `@smoke` (9 critical-path tests, ~14s) and `@regression` for CI gating.
 

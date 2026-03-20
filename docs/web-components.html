@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>StreamGrid — Web Component Demo</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="../src/streamgrid.css">
+    <link rel="stylesheet" href="../src/demo-shared.css">
+    <style>
+        /* ── Badge styles for template rendering demo ────────────────────────── */
+        .badge-active   { background: #dcfce7; color: #166534; }
+        .badge-inactive { background: #fee2e2; color: #991b1b; }
+        .badge-pending  { background: #fef9c3; color: #713f12; }
+        .badge-on-leave { background: #ede9fe; color: #5b21b6; }
+        .wc-badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 2px 9px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        /* ── Source-code panel ────────────────────────────────────────────────── */
+        .source-panel {
+            background: #1e293b;
+            color: #e2e8f0;
+            font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            padding: 16px 20px;
+            border-radius: 0 0 8px 8px;
+            border: 1px solid #334155;
+            border-top: none;
+            overflow-x: auto;
+            margin-bottom: 8px;
+            white-space: pre;
+        }
+        .source-panel .tag   { color: #7dd3fc; }
+        .source-panel .attr  { color: #c4b5fd; }
+        .source-panel .val   { color: #86efac; }
+        .source-panel .cmt   { color: #64748b; font-style: italic; }
+        .source-panel .tok   { color: #fbbf24; }
+    </style>
+</head>
+
+<body>
+
+    <header class="page-header">
+        <div class="header-inner">
+            <h1>StreamGrid — Web Component Demo</h1>
+            <p class="subtitle">
+                Declarative HTML-first usage with <code>&lt;stream-grid&gt;</code> and
+                <code>&lt;stream-grid-column&gt;</code>. No JavaScript required for the basic case —
+                every grid on this page is configured entirely in HTML attributes.
+            </p>
+            <div class="badge-row">
+                <span class="badge">Zero JS Required</span>
+                <span class="badge">Custom Elements v1</span>
+                <span class="badge">No Build Step</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <!-- ─── 1. Minimal ─────────────────────────────────────────────────── -->
+        <section>
+            <h2>1. Minimal — Auto-Discovered Columns</h2>
+            <p class="section-note">
+                Point <code>src</code> at a REST API and set a <code>table</code>. StreamGrid auto-discovers
+                columns from the first row of data. No <code>&lt;stream-grid-column&gt;</code> children needed.
+            </p>
+
+            <stream-grid
+                id="wc-minimal"
+                src="http://localhost:3000"
+                table="users"
+                page-size="5">
+            </stream-grid>
+
+            <div class="source-panel"><span class="tag">&lt;stream-grid</span>
+  <span class="attr">src</span>=<span class="val">"http://localhost:3000"</span>
+  <span class="attr">table</span>=<span class="val">"users"</span>
+  <span class="attr">page-size</span>=<span class="val">"5"</span><span class="tag">&gt;</span>
+<span class="tag">&lt;/stream-grid&gt;</span></div>
+        </section>
+
+        <!-- ─── 2. Explicit Columns ────────────────────────────────────────── -->
+        <section>
+            <h2>2. Explicit Columns with Sorting</h2>
+            <p class="section-note">
+                Declare columns as <code>&lt;stream-grid-column&gt;</code> children to control field order,
+                labels, widths, and sort types. The <code>sorter</code> attribute sets the comparator
+                (<code>"string"</code>, <code>"number"</code>, or <code>"date"</code>).
+            </p>
+
+            <stream-grid
+                id="wc-columns"
+                src="http://localhost:3000"
+                table="users"
+                page-size="5"
+                pagination-mode="numbers">
+                <stream-grid-column field="id"         label="ID"         width="60px" sorter="number" sortable="false"></stream-grid-column>
+                <stream-grid-column field="name"       label="Full Name"  sorter="string"></stream-grid-column>
+                <stream-grid-column field="email"      label="Email"      sortable="false"></stream-grid-column>
+                <stream-grid-column field="department" label="Department" sorter="string"></stream-grid-column>
+                <stream-grid-column field="city"       label="City"       sorter="string"></stream-grid-column>
+                <stream-grid-column field="status"     label="Status"     sorter="string"></stream-grid-column>
+            </stream-grid>
+
+            <div class="source-panel"><span class="tag">&lt;stream-grid</span> <span class="attr">src</span>=<span class="val">"…"</span> <span class="attr">table</span>=<span class="val">"users"</span> <span class="attr">page-size</span>=<span class="val">"5"</span> <span class="attr">pagination-mode</span>=<span class="val">"numbers"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;stream-grid-column</span> <span class="attr">field</span>=<span class="val">"id"</span>   <span class="attr">label</span>=<span class="val">"ID"</span>   <span class="attr">width</span>=<span class="val">"60px"</span> <span class="attr">sorter</span>=<span class="val">"number"</span> <span class="attr">sortable</span>=<span class="val">"false"</span><span class="tag">&gt;&lt;/stream-grid-column&gt;</span>
+  <span class="tag">&lt;stream-grid-column</span> <span class="attr">field</span>=<span class="val">"name"</span> <span class="attr">label</span>=<span class="val">"Full Name"</span> <span class="attr">sorter</span>=<span class="val">"string"</span><span class="tag">&gt;&lt;/stream-grid-column&gt;</span>
+  <span class="tag">&lt;stream-grid-column</span> <span class="attr">field</span>=<span class="val">"email"</span> <span class="attr">label</span>=<span class="val">"Email"</span> <span class="attr">sortable</span>=<span class="val">"false"</span><span class="tag">&gt;&lt;/stream-grid-column&gt;</span>
+  <span class="cmt">&lt;!-- … more columns --&gt;</span>
+<span class="tag">&lt;/stream-grid&gt;</span></div>
+        </section>
+
+        <!-- ─── 3. Filtering ───────────────────────────────────────────────── -->
+        <section>
+            <h2>3. Declarative Filtering</h2>
+            <p class="section-note">
+                Add the boolean <code>filter</code> attribute to any column to include it in the filter.
+                Set <code>filter-mode</code> and <code>filter-debounce</code> on the parent element to
+                control filtering strategy and input responsiveness.
+            </p>
+
+            <stream-grid
+                id="wc-filtering"
+                src="http://localhost:3000"
+                table="users"
+                page-size="5"
+                filter-mode="client"
+                filter-debounce="200">
+                <stream-grid-column field="name"       label="Name"       filter></stream-grid-column>
+                <stream-grid-column field="email"      label="Email"      filter sortable="false"></stream-grid-column>
+                <stream-grid-column field="department" label="Department" filter sorter="string"></stream-grid-column>
+                <stream-grid-column field="city"       label="City"       filter></stream-grid-column>
+                <stream-grid-column field="status"     label="Status"     sorter="string"></stream-grid-column>
+            </stream-grid>
+
+            <div class="source-panel"><span class="tag">&lt;stream-grid</span> <span class="attr">src</span>=<span class="val">"…"</span> <span class="attr">filter-mode</span>=<span class="val">"client"</span> <span class="attr">filter-debounce</span>=<span class="val">"200"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;stream-grid-column</span> <span class="attr">field</span>=<span class="val">"name"</span>       <span class="attr">label</span>=<span class="val">"Name"</span>       <span class="attr">filter</span><span class="tag">&gt;&lt;/stream-grid-column&gt;</span>
+  <span class="tag">&lt;stream-grid-column</span> <span class="attr">field</span>=<span class="val">"email"</span>      <span class="attr">label</span>=<span class="val">"Email"</span>      <span class="attr">filter</span> <span class="attr">sortable</span>=<span class="val">"false"</span><span class="tag">&gt;&lt;/stream-grid-column&gt;</span>
+  <span class="tag">&lt;stream-grid-column</span> <span class="attr">field</span>=<span class="val">"department"</span> <span class="attr">label</span>=<span class="val">"Department"</span> <span class="attr">filter</span> <span class="attr">sorter</span>=<span class="val">"string"</span><span class="tag">&gt;&lt;/stream-grid-column&gt;</span>
+  <span class="cmt">&lt;!-- columns without filter are searchable but don't appear in the filter field list --&gt;</span>
+<span class="tag">&lt;/stream-grid&gt;</span></div>
+        </section>
+
+        <!-- ─── 4. Template Rendering ──────────────────────────────────────── -->
+        <section>
+            <h2>4. Declarative Cell Rendering with <code>&lt;template&gt;</code></h2>
+            <p class="section-note">
+                Reference a <code>&lt;template&gt;</code> element by ID via the <code>template</code> attribute.
+                Use <code>{{value}}</code> for the cell value and <code>{{row.field}}</code> for any other field
+                in the row. All interpolated values are HTML-escaped automatically — no XSS risk.
+            </p>
+
+            <template id="status-tpl">
+                <span class="wc-badge badge-{{value}}">{{value}}</span>
+            </template>
+
+            <template id="email-tpl">
+                <a href="mailto:{{value}}">{{value}}</a>
+            </template>
+
+            <template id="profile-tpl">
+                <strong>{{value}}</strong> <small>({{row.department}})</small>
+            </template>
+
+            <stream-grid
+                id="wc-templates"
+                src="http://localhost:3000"
+                table="users"
+                page-size="5"
+                filter-mode="client">
+                <stream-grid-column field="name"       label="Name"       filter template="profile-tpl"></stream-grid-column>
+                <stream-grid-column field="email"      label="Email"      template="email-tpl"></stream-grid-column>
+                <stream-grid-column field="department" label="Department" filter sorter="string"></stream-grid-column>
+                <stream-grid-column field="city"       label="City"       filter></stream-grid-column>
+                <stream-grid-column field="status"     label="Status"     template="status-tpl"></stream-grid-column>
+            </stream-grid>
+
+            <div class="source-panel"><span class="cmt">&lt;!-- Define templates once, reference by ID --&gt;</span>
+<span class="tag">&lt;template</span> <span class="attr">id</span>=<span class="val">"status-tpl"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;span</span> <span class="attr">class</span>=<span class="val">"badge badge-<span class="tok">{{value}}</span>"</span><span class="tag">&gt;</span><span class="tok">{{value}}</span><span class="tag">&lt;/span&gt;</span>
+<span class="tag">&lt;/template&gt;</span>
+
+<span class="tag">&lt;template</span> <span class="attr">id</span>=<span class="val">"profile-tpl"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;strong&gt;</span><span class="tok">{{value}}</span><span class="tag">&lt;/strong&gt;</span> <span class="tag">&lt;small&gt;</span>(<span class="tok">{{row.department}}</span>)<span class="tag">&lt;/small&gt;</span>
+<span class="tag">&lt;/template&gt;</span>
+
+<span class="cmt">&lt;!-- Reference via the template attribute --&gt;</span>
+<span class="tag">&lt;stream-grid-column</span> <span class="attr">field</span>=<span class="val">"name"</span>   <span class="attr">template</span>=<span class="val">"profile-tpl"</span><span class="tag">&gt;&lt;/stream-grid-column&gt;</span>
+<span class="tag">&lt;stream-grid-column</span> <span class="attr">field</span>=<span class="val">"status"</span> <span class="attr">template</span>=<span class="val">"status-tpl"</span><span class="tag">&gt;&lt;/stream-grid-column&gt;</span></div>
+        </section>
+
+        <!-- ─── 5. Infinite Scroll ─────────────────────────────────────────── -->
+        <section>
+            <h2>5. Infinite Scroll</h2>
+            <p class="section-note">
+                Set <code>pagination-mode="infinite"</code> for scroll-triggered row loading.
+                No pagination controls are rendered — rows append automatically as the user scrolls.
+            </p>
+
+            <stream-grid
+                id="wc-infinite"
+                src="http://localhost:3000"
+                table="users"
+                page-size="20"
+                pagination-mode="infinite">
+                <stream-grid-column field="id"     label="ID"     width="60px" sortable="false"></stream-grid-column>
+                <stream-grid-column field="name"   label="Name"></stream-grid-column>
+                <stream-grid-column field="email"  label="Email"></stream-grid-column>
+                <stream-grid-column field="city"   label="City"></stream-grid-column>
+                <stream-grid-column field="status" label="Status"></stream-grid-column>
+            </stream-grid>
+
+            <div class="source-panel"><span class="tag">&lt;stream-grid</span>
+  <span class="attr">src</span>=<span class="val">"…"</span>
+  <span class="attr">pagination-mode</span>=<span class="val">"infinite"</span>
+  <span class="attr">page-size</span>=<span class="val">"20"</span><span class="tag">&gt;</span>
+  <span class="cmt">&lt;!-- columns … --&gt;</span>
+<span class="tag">&lt;/stream-grid&gt;</span></div>
+        </section>
+
+        <!-- ─── 6. Escape Hatch ────────────────────────────────────────────── -->
+        <section>
+            <h2>6. The <code>element.grid</code> Escape Hatch</h2>
+            <p class="section-note">
+                Access the full <code>StreamGrid</code> instance via <code>element.grid</code> for
+                programmatic control — event subscription, plugin registration, and render callbacks.
+                This demo subscribes to sort and filter events and logs them below.
+            </p>
+
+            <stream-grid
+                id="wc-escape"
+                src="http://localhost:3000"
+                table="users"
+                page-size="5"
+                filter-mode="client">
+                <stream-grid-column field="name"       label="Name"       filter></stream-grid-column>
+                <stream-grid-column field="email"      label="Email"      filter></stream-grid-column>
+                <stream-grid-column field="department" label="Department" filter sorter="string"></stream-grid-column>
+                <stream-grid-column field="city"       label="City"></stream-grid-column>
+                <stream-grid-column field="status"     label="Status"></stream-grid-column>
+            </stream-grid>
+            <div id="event-log" style="font-family:'SF Mono','Cascadia Code',Consolas,monospace;font-size:0.75rem;color:#64748b;padding:8px 16px;max-height:120px;overflow-y:auto;background:#f8fafc;border:1px solid #e2e8f0;border-radius:0 0 8px 8px;border-top:none"></div>
+
+            <div class="source-panel"><span class="cmt">// Access the full StreamGrid instance after the element connects</span>
+const el = document.<span class="attr">querySelector</span>(<span class="val">'stream-grid'</span>);
+
+el.grid.<span class="attr">on</span>(<span class="val">'sortChanged'</span>, ({ sortStack }) =&gt; {
+  console.log(<span class="val">'Sort:'</span>, sortStack);
+});
+
+el.grid.<span class="attr">on</span>(<span class="val">'filterApplied'</span>, ({ filterText, totalFilteredRows }) =&gt; {
+  console.log(<span class="val">`Filter: "${filterText}" → ${totalFilteredRows} rows`</span>);
+});</div>
+        </section>
+
+    </main>
+
+    <!-- Single import registers both custom elements -->
+    <script type="module" src="../src/webComponent/stream-grid.js"></script>
+
+    <!-- Escape-hatch demo: subscribe to events after the grid connects -->
+    <script type="module">
+        const el = document.getElementById('wc-escape');
+        const log = document.getElementById('event-log');
+
+        function appendLog(msg) {
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            log.appendChild(line);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Wait for the grid to initialise (microtask + async init)
+        await new Promise(r => setTimeout(r, 500));
+
+        if (el.grid) {
+            el.grid.on('sortChanged', ({ sortStack }) => {
+                const desc = sortStack.map(s => `${s.field} ${s.direction}`).join(', ');
+                appendLog(`Sort changed → ${desc || '(cleared)'}`);
+            });
+            el.grid.on('filterApplied', ({ filterText, totalFilteredRows }) => {
+                appendLog(`Filter: "${filterText}" → ${totalFilteredRows} rows`);
+            });
+            el.grid.on('paginationChanged', ({ currentPage, totalRows }) => {
+                appendLog(`Page ${currentPage} of ${Math.ceil(totalRows / 5)}`);
+            });
+            appendLog('Event listeners attached — sort, filter, or paginate to see events');
+        }
+    </script>
+
+</body>
+
+</html>

@@ -40,9 +40,21 @@
       overflow-y: auto;
     }
 
-    .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.85em; }
-    .badge-active { background: #d4edda; color: #155724; }
-    .badge-inactive { background: #f8d7da; color: #721c24; }
+    .badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+
+    .badge-active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-inactive {
+      background: #f8d7da;
+      color: #721c24;
+    }
   </style>
 </head>
 
@@ -138,6 +150,8 @@
         <stream-grid-column field="name" label="Name"></stream-grid-column>
         <stream-grid-column field="email" label="Email"></stream-grid-column>
         <stream-grid-column field="status" label="Status" sortable="false"></stream-grid-column>
+        <stream-grid-column field="department" label="Department"></stream-grid-column>
+        <stream-grid-column field="city" label="City"></stream-grid-column>
       </stream-grid>
 
       <h3 style="padding:0 16px;margin:24px 0 8px;font-size:1rem">Declarative <code>sorter</code> &amp;
@@ -153,23 +167,27 @@
         <stream-grid-column field="city" label="City" filter></stream-grid-column>
       </stream-grid>
 
-      <h3 style="padding:0 16px;margin:24px 0 8px;font-size:1rem">Declarative <code>&lt;template&gt;</code> rendering</h3>
+      <h3 style="padding:0 16px;margin:24px 0 8px;font-size:1rem">Declarative <code>&lt;template&gt;</code> rendering
+      </h3>
       <p style="padding:0 16px;color:#64748b;font-size:0.88rem;margin:0 0 8px">Cell content rendered via
-        <code>&lt;template&gt;</code> references — status badges and email links declared entirely in HTML.</p>
+        <code>&lt;template&gt;</code> references — status badges and email links declared entirely in HTML.
+      </p>
 
       <template id="status-badge-tpl">
-          <span class="badge badge-{{value}}">{{value}}</span>
+        <span class="badge badge-{{value}}">{{value}}</span>
       </template>
 
       <template id="email-link-tpl">
-          <a href="mailto:{{value}}">{{value}}</a>
+        <a href="mailto:{{value}}">{{value}}</a>
       </template>
 
       <stream-grid id="wc-template" src="http://localhost:3000" table="users" page-size="5">
-          <stream-grid-column field="id" label="ID" sortable="false"></stream-grid-column>
-          <stream-grid-column field="name" label="Name" filter></stream-grid-column>
-          <stream-grid-column field="email" label="Email" template="email-link-tpl"></stream-grid-column>
-          <stream-grid-column field="status" label="Status" template="status-badge-tpl"></stream-grid-column>
+        <stream-grid-column field="id" label="ID" sortable="false"></stream-grid-column>
+        <stream-grid-column field="name" label="Name" filter></stream-grid-column>
+        <stream-grid-column field="email" label="Email" template="email-link-tpl"></stream-grid-column>
+        <stream-grid-column field="status" label="Status" template="status-badge-tpl"></stream-grid-column>
+        <stream-grid-column field="department" label="Department" filter sorter="string"></stream-grid-column>
+        <stream-grid-column field="city" label="City" filter></stream-grid-column>
       </stream-grid>
     </section>
 

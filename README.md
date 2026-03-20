@@ -1,14 +1,15 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-299%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-304%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
 StreamGrid is a lightweight, zero-dependency JavaScript data table library written in pure ES6+. It renders HTML tables from any data source, supports built-in text filtering with automatic client/server mode switching, three pagination modes (pages, numbers, infinite scroll), a WordPress-style hook system, and an init-time plugin API — all without a framework.
 
-## Live Demo
+## Live Demos
 
-[**Try StreamGrid →**](https://mihai-r-lupu.github.io/streamgrid/docs/index.html)
+[**JS API Demo →**](https://mihai-r-lupu.github.io/streamgrid/docs/index.html) · [**Web Component Demo →**](https://mihai-r-lupu.github.io/streamgrid/docs/web-components.html)
+
 ![StreamGrid Demo](docs/demo.gif)
 
 ---
@@ -111,6 +112,28 @@ StreamGrid ships as a native Web Component (`<stream-grid>`) for zero-JS HTML-fi
 | `width`    | CSS width value for the column (e.g. `"120px"`, `"10%"`).                           | auto          |
 | `sorter`   | Sort type for this column: `"string"`, `"number"`, `"date"`, or a comparator fn.   | `"string"`    |
 | `filter`   | Boolean attribute. When present, this column's field is added to `options.filters`. | absent        |
+| `template` | ID of a `<template>` element for declarative cell rendering (see [Declarative Template Rendering](#declarative-template-rendering)). | —  |
+
+### Declarative template rendering
+
+The `template` attribute on `<stream-grid-column>` references a `<template>` element by ID. The template HTML supports `{{value}}` (the cell value) and `{{row.field}}` (any other field in the row). All interpolated values are HTML-escaped automatically.
+
+```html
+<template id="status-tpl">
+  <span class="badge badge-{{value}}">{{value}}</span>
+</template>
+
+<template id="profile-tpl">
+  <strong>{{value}}</strong> <small>({{row.department}})</small>
+</template>
+
+<stream-grid src="https://api.example.com" table="users" page-size="10">
+  <stream-grid-column field="name"   label="Name"   template="profile-tpl"></stream-grid-column>
+  <stream-grid-column field="status" label="Status" template="status-tpl"></stream-grid-column>
+</stream-grid>
+```
+
+If the referenced `<template>` ID is not found, the column renders plain text and a console warning is emitted.
 
 ### `element.grid` escape hatch
 
@@ -542,12 +565,12 @@ See [docs/Adapters.md](docs/Adapters.md) for full `CacheAdapter` options.
 
 ## Testing
 
-StreamGrid has **299 tests** — 248 unit tests and 51 end-to-end tests.
+StreamGrid has **304 tests** — 253 unit tests and 51 end-to-end tests.
 
 **Unit tests** (Mocha + Chai, JSDOM — no browser required):
 
 ```bash
-npm run test:unit      # 248 tests
+npm run test:unit      # 253 tests
 ```
 
 **End-to-end tests** (Playwright — server starts automatically):
