@@ -184,7 +184,7 @@ export class StreamGrid {
      * @returns {Promise<void>}
      */
     async _loadData() {
-        const config = {};
+        let config = {};
 
         if (this.shouldUseServerFiltering()) {
             config.fields = this.filters;
@@ -197,7 +197,12 @@ export class StreamGrid {
             config.sortOrders = this.sortStack.map(s => s.direction);
         }
 
-        const data = await this.dataAdapter.fetchData(this.table, config);
+        config = this.hooks.applyFilters('beforeFetch', config);
+
+        let data = await this.dataAdapter.fetchData(this.table, config);
+
+        data = this.hooks.applyFilters('afterFetch', data);
+
         this.dataSet = new DataSet(data);
         this.emit('dataLoaded', data);
     }
@@ -328,6 +333,13 @@ export class StreamGrid {
         const raw = this.filterInput.value.trim();
         this.currentFilterText = this.filterCaseSensitive ? raw : raw.toLowerCase();
 
+        const filterConfig = this.hooks.applyFilters('beforeFilter', {
+            filterText: this.currentFilterText,
+            fields: this.filters,
+            options: { exactCase: this.filterCaseSensitive }
+        });
+        this.currentFilterText = filterConfig.filterText;
+
         if (this.shouldUseServerFiltering()) {
             await this._loadData();
         } else {
@@ -444,9 +456,11 @@ export class StreamGrid {
     _renderBody() {
         const filteredRows = this.getFilteredRows();
         const allRows = this.getSortedRows(filteredRows);
-        const rowsToShow = this.paginationMode === 'infinite'
+        let rowsToShow = this.paginationMode === 'infinite'
             ? infinite(allRows, this.totalLoadedRows, this.infiniteScrollPageSize, this.infiniteScrollTotalLimit).rows
             : page(allRows, this.currentPage, this.pageSize);
+
+        rowsToShow = this.hooks.applyFilters('beforeRender', rowsToShow);
 
         // Preserve scroll position in infinite mode so re-rendering more rows
         // doesn't jump the user back to the top of the container.
@@ -475,8 +489,12 @@ export class StreamGrid {
             return;
         }
 
-        rowsToShow.forEach(row => {
+        rowsToShow.forEach((row, rowIndex) => {
             const tr = document.createElement('tr');
+
+            const rowClassResult = this.hooks.applyFilters('rowClass', { className: '', row, index: rowIndex });
+            if (rowClassResult.className) tr.className = rowClassResult.className;
+
             this.columns.forEach(col => {
                 const td = document.createElement('td');
                 const field = typeof col === 'string' ? col : col.field;
@@ -521,6 +539,16 @@ export class StreamGrid {
                     td.textContent = String(value);
                 }
 
+                // cellRender hook — cross-cutting cell customisation
+                if (this.hooks.hasFilter('cellRender')) {
+                    const cellResult = this.hooks.applyFilters('cellRender', { value, row, column: col, element: td });
+                    if (cellResult && cellResult.element && cellResult.element !== td) {
+                        // Plugin replaced the element — use the returned one instead
+                        tr.appendChild(cellResult.element);
+                        return;
+                    }
+                }
+
                 tr.appendChild(td);
             });
             this.tbodyElement.appendChild(tr);
@@ -531,6 +559,7 @@ export class StreamGrid {
         }
 
         this._renderPagination(allRows.length);
+        this.hooks.doAction('afterRender', this);
         this.emit('tableRendered', this);
     }
 
@@ -641,6 +670,8 @@ export class StreamGrid {
             }
         }
 
+        this.sortStack = this.hooks.applyFilters('beforeSort', this.sortStack);
+
         this.currentPage = 1;
 
         if (this.shouldUseServerSort() && this.sortStack.length) {
@@ -649,6 +680,7 @@ export class StreamGrid {
 
         this._renderBody();
         this._updateSortIndicators();
+        this.hooks.doAction('afterSort', { sortStack: this.sortStack.map(s => ({ ...s })) });
         this.emit('sortChanged', { sortStack: this.sortStack.map(s => ({ ...s })) });
     }
 
@@ -701,7 +733,14 @@ export class StreamGrid {
      * @param {number} pageNum - 1-based page number to go to.
      */
     goToPage(pageNum) {
-        this.currentPage = pageNum;
+        const pageInfo = this.hooks.applyFilters('beforePageChange', {
+            targetPage: pageNum,
+            currentPage: this.currentPage,
+            totalRows: this.getFilteredRows().length
+        });
+        if (pageInfo.targetPage === null) return;
+
+        this.currentPage = pageInfo.targetPage;
         this._renderBody();
         this.emit('paginationChanged', { currentPage: this.currentPage, totalRows: this.getFilteredRows().length });
     }
@@ -837,35 +876,35 @@ export class StreamGrid {
 
     // ── Hook public API ────────────────────────────────────────────────────────
 
-    /**
-     * Register an action hook callback.
-     * @param {string} name
-     * @param {Function} callback
-     */
-    addAction(name, callback) { this.hooks.addAction(name, callback); }
-
-    /**
-     * Execute all callbacks registered for an action hook.
-     * @param {string} name
-     * @param {...*} args
-     */
+    addAction(name, callback, priority, nsOrOpts) { this.hooks.addAction(name, callback, priority, nsOrOpts); }
     doAction(name, ...args) { this.hooks.doAction(name, ...args); }
+    addFilter(name, callback, priority, nsOrOpts) { this.hooks.addFilter(name, callback, priority, nsOrOpts); }
+    applyFilters(name, value, ...args) { return this.hooks.applyFilters(name, value, ...args); }
+    removeAction(name, callback) { this.hooks.removeAction(name, callback); }
+    removeFilter(name, callback) { this.hooks.removeFilter(name, callback); }
+    hasAction(name) { return this.hooks.hasAction(name); }
+    hasFilter(name) { return this.hooks.hasFilter(name); }
+    removeAllHooks(namespace) { this.hooks.removeAllHooks(namespace); }
+    registerCommand(name, handler) { this.hooks.registerCommand(name, handler); }
+    executeCommand(name, ...args) { return this.hooks.executeCommand(name, ...args); }
 
     /**
-     * Register a filter hook callback.
-     * @param {string} name
+     * Convenience method — shorthand for `addAction('beforeDestroy', callback)`.
      * @param {Function} callback
      */
-    addFilter(name, callback) { this.hooks.addFilter(name, callback); }
+    onDestroy(callback) { this.hooks.addAction('beforeDestroy', callback); }
 
     /**
-     * Run a value through all filter hook callbacks registered for a name.
-     * @param {string} name
-     * @param {*} value
-     * @param {...*} args
-     * @returns {*} The transformed value.
+     * Tears down the grid: fires beforeDestroy hooks, calls plugin.destroy(),
+     * removes DOM, and cleans up references.
      */
-    applyFilters(name, value, ...args) { return this.hooks.applyFilters(name, value, ...args); }
+    destroy() {
+        this.hooks.doAction('beforeDestroy', this);
+        this.plugins.forEach(plugin => plugin.destroy?.(this));
+        this.container.innerHTML = '';
+        this._grid = null;
+        this.dataSet = new DataSet();
+    }
 
     /**
      * Validates that the provided adapter implements all required methods.
