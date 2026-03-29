@@ -111,12 +111,12 @@ describe('HookManager', () => {
 
         it('removeAction on non-existent hook does not throw', () => {
             const hooks = new HookManager();
-            expect(() => hooks.removeAction('nope', () => {})).to.not.throw();
+            expect(() => hooks.removeAction('nope', () => { })).to.not.throw();
         });
 
         it('removeFilter on non-existent hook does not throw', () => {
             const hooks = new HookManager();
-            expect(() => hooks.removeFilter('nope', () => {})).to.not.throw();
+            expect(() => hooks.removeFilter('nope', () => { })).to.not.throw();
         });
     });
 
@@ -125,7 +125,7 @@ describe('HookManager', () => {
     describe('has hooks', () => {
         it('hasAction returns true when callbacks exist', () => {
             const hooks = new HookManager();
-            hooks.addAction('test', () => {});
+            hooks.addAction('test', () => { });
             expect(hooks.hasAction('test')).to.be.true;
         });
 
@@ -147,7 +147,7 @@ describe('HookManager', () => {
 
         it('hasAction returns false after all callbacks are removed', () => {
             const hooks = new HookManager();
-            const cb = () => {};
+            const cb = () => { };
             hooks.addAction('test', cb);
             hooks.removeAction('test', cb);
             expect(hooks.hasAction('test')).to.be.false;
@@ -228,7 +228,7 @@ describe('HookManager', () => {
 
             hooks.addAction('render', actionSpy, 10, 'my-plugin');
             hooks.addFilter('data', filterCb, 10, 'my-plugin');
-            hooks.addAction('render', () => {}, 10, 'other-plugin');
+            hooks.addAction('render', () => { }, 10, 'other-plugin');
 
             hooks.removeAllHooks('my-plugin');
 
@@ -370,7 +370,7 @@ describe('HookManager', () => {
             const hooks = new HookManager();
             hooks.debug = true;
 
-            hooks.addAction('test', () => {});
+            hooks.addAction('test', () => { });
             hooks.addFilter('f', v => v);
             hooks.doAction('test');
             hooks.applyFilters('f', 'val');
@@ -381,10 +381,105 @@ describe('HookManager', () => {
         it('does not log when debug is false', () => {
             const hooks = new HookManager();
 
-            hooks.addAction('test', () => {});
+            hooks.addAction('test', () => { });
             hooks.doAction('test');
 
             expect(logStub.called).to.be.false;
+        });
+    });
+
+    // ── Additional edge cases ──────────────────────────────────────────────────
+
+    describe('additional edge cases', () => {
+        it('hasFilter returns false after all callbacks are removed', () => {
+            const hooks = new HookManager();
+            const cb = v => v;
+            hooks.addFilter('test', cb);
+            hooks.removeFilter('test', cb);
+            expect(hooks.hasFilter('test')).to.be.false;
+        });
+
+        it('once with custom priority still fires in correct order', () => {
+            const hooks = new HookManager();
+            const order = [];
+
+            hooks.addAction('test', () => order.push('normal-10'), 10);
+            hooks.addAction('test', () => order.push('once-5'), 5, { once: true });
+            hooks.addAction('test', () => order.push('normal-20'), 20);
+
+            hooks.doAction('test');
+            expect(order).to.deep.equal(['once-5', 'normal-10', 'normal-20']);
+
+            // Second call should skip the once callback
+            order.length = 0;
+            hooks.doAction('test');
+            expect(order).to.deep.equal(['normal-10', 'normal-20']);
+        });
+
+        it('once and namespace can be combined in options object', () => {
+            const hooks = new HookManager();
+            const cb = sinon.spy();
+
+            hooks.addAction('test', cb, 10, { once: true, namespace: 'my-ns' });
+            hooks.doAction('test');
+            hooks.doAction('test');
+
+            expect(cb.callCount).to.equal(1);
+        });
+
+        it('doActionAsync respects priority ordering', async () => {
+            const hooks = new HookManager();
+            const order = [];
+
+            hooks.addAction('test', () => order.push('late-20'), 20);
+            hooks.addAction('test', () => order.push('early-5'), 5);
+            hooks.addAction('test', () => order.push('default-10'), 10);
+
+            await hooks.doActionAsync('test');
+            expect(order).to.deep.equal(['early-5', 'default-10', 'late-20']);
+        });
+
+        it('applyFiltersAsync preserves value when filter returns undefined', async () => {
+            const hooks = new HookManager();
+
+            hooks.addFilter('test', async () => undefined);
+            hooks.addFilter('test', v => v + '-kept');
+
+            const result = await hooks.applyFiltersAsync('test', 'start');
+            expect(result).to.equal('start-kept');
+        });
+
+        it('once action fires once then is removed in async execution', async () => {
+            const hooks = new HookManager();
+            const cb = sinon.spy();
+
+            hooks.addAction('test', cb, 10, { once: true });
+            await hooks.doActionAsync('test');
+            await hooks.doActionAsync('test');
+
+            expect(cb.callCount).to.equal(1);
+        });
+
+        it('once filter fires once then is removed in async execution', async () => {
+            const hooks = new HookManager();
+            hooks.addFilter('test', v => v + '-once', 10, { once: true });
+
+            const r1 = await hooks.applyFiltersAsync('test', 'a');
+            const r2 = await hooks.applyFiltersAsync('test', 'b');
+
+            expect(r1).to.equal('a-once');
+            expect(r2).to.equal('b');
+        });
+
+        it('removeAllHooks with non-matching namespace is a no-op', () => {
+            const hooks = new HookManager();
+            const cb = sinon.spy();
+
+            hooks.addAction('test', cb, 10, 'existing-ns');
+            hooks.removeAllHooks('non-existing-ns');
+            hooks.doAction('test');
+
+            expect(cb.calledOnce).to.be.true;
         });
     });
 });

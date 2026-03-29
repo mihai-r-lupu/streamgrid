@@ -78,7 +78,7 @@ describe('StreamGrid - Plugin System', () => {
     describe('plugin lifecycle', () => {
         it('destroy() calls plugin.destroy(grid)', async () => {
             const destroySpy = sinon.spy();
-            const plugin = { init() {}, destroy: destroySpy };
+            const plugin = { init() { }, destroy: destroySpy };
             const grid = makeGrid({ plugins: [plugin] });
             await grid.init();
 
@@ -328,7 +328,7 @@ describe('StreamGrid - Plugin System', () => {
             await grid.init();
 
             expect(grid.hasAction('test')).to.be.false;
-            grid.addAction('test', () => {});
+            grid.addAction('test', () => { });
             expect(grid.hasAction('test')).to.be.true;
 
             expect(grid.hasFilter('test')).to.be.false;
@@ -354,6 +354,70 @@ describe('StreamGrid - Plugin System', () => {
 
             grid.registerCommand('ping', () => 'pong');
             expect(grid.executeCommand('ping')).to.equal('pong');
+        });
+
+        it('grid.removeFilter removes a filter hook', async () => {
+            const grid = makeGrid();
+            await grid.init();
+            const cb = v => v + '-extra';
+
+            grid.addFilter('test', cb);
+            grid.removeFilter('test', cb);
+
+            expect(grid.applyFilters('test', 'val')).to.equal('val');
+        });
+    });
+
+    // ── Additional edge cases ──────────────────────────────────────────────────
+
+    describe('additional edge cases', () => {
+        it('plugin without destroy method does not throw on grid.destroy()', async () => {
+            const plugin = { init() { } }; // no destroy method
+            const grid = makeGrid({ plugins: [plugin] });
+            await grid.init();
+
+            expect(() => grid.destroy()).to.not.throw();
+        });
+
+        it('multiple plugins init in registration order', async () => {
+            const order = [];
+            const p1 = { init() { order.push('first'); } };
+            const p2 = { init() { order.push('second'); } };
+            const p3 = { init() { order.push('third'); } };
+
+            // Constructor calls init() automatically; await the returned promise
+            const grid = makeGrid({ plugins: [p1, p2, p3] });
+            await grid.init();
+
+            // init() runs twice (constructor + explicit call), verify order within each cycle
+            expect(order.slice(0, 3)).to.deep.equal(['first', 'second', 'third']);
+            expect(order.slice(3, 6)).to.deep.equal(['first', 'second', 'third']);
+        });
+
+        it('cellRender can replace the td element entirely', async () => {
+            const grid = makeGrid({ _rows: [{ name: 'Test' }] });
+            await grid.init();
+
+            grid.addFilter('cellRender', (info) => {
+                const newTd = document.createElement('td');
+                newTd.textContent = 'replaced';
+                newTd.className = 'custom-cell';
+                return { ...info, element: newTd };
+            });
+            grid._renderBody();
+
+            const td = container.querySelector('tbody td');
+            expect(td.textContent).to.equal('replaced');
+            expect(td.className).to.equal('custom-cell');
+        });
+
+        it('destroy clears the dataSet', async () => {
+            const grid = makeGrid({ _rows: [{ name: 'Alice' }] });
+            await grid.init();
+            expect(grid.dataSet.data.length).to.be.greaterThan(0);
+
+            grid.destroy();
+            expect(grid.dataSet.data.length).to.equal(0);
         });
     });
 });

@@ -75,3 +75,15 @@ this.emit('customPluginEvent', { data: 'whatever' });
 ```
 
 Consumers listen with `.on('customPluginEvent', callback)` the same way as built-in events.
+
+---
+
+## Events vs Hooks
+
+StreamGrid also exposes a **hook system** (`addFilter` / `addAction`) that serves a different purpose from events. See [Plugins.md](Plugins.md) for the full hook API.
+
+| | Events (`on`/`emit`) | Hooks (`addFilter`/`addAction`) |
+|---|---|---|
+| **Purpose** | Notify after something happened | Transform data or fire side effects within the pipeline |
+| **Changes behaviour?** | No — observation only | Yes — filters modify data, actions run at lifecycle points |
+| **When to use** | Logging, analytics, UI updates | Modifying rows, adding CSS classes, cancelling navigation |

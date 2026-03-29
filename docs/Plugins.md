@@ -1,6 +1,6 @@
 # Plugin System for StreamGrid
 
-StreamGrid supports a simple plugin API. A plugin is any object with an optional `init(grid)` method. It receives the full grid instance once data has been loaded, and can attach DOM controls, subscribe to events, call any public method, or register hooks.
+StreamGrid supports a WordPress-inspired hook system and a plugin lifecycle API. A plugin is any object with an optional `init(grid)` method and an optional `destroy(grid)` method. Plugins can transform data in the rendering pipeline via **filters**, fire side effects at lifecycle points via **actions**, and register named **commands**.
 
 ---
 
@@ -37,6 +37,10 @@ class WordCountPlugin {
 
         grid.container.parentElement.insertBefore(label, grid.container);
     }
+
+    destroy(grid) {
+        // Clean up any DOM or listeners your plugin created
+    }
 }
 ```
 
@@ -70,8 +74,299 @@ class CsvExportPlugin {
 |---|---|
 | Construction | `plugins` array is stored |
 | `init()` called | `loading` event fires, shimmer rows appear |
-| After first data load | `plugin.init(grid)` is called for each plugin |
-| Live operation | Plugins react to events, extend UI, modify grid behaviour |
+| After first data load | `plugin.init(grid)` is called for each plugin, in registration order |
+| Live operation | Plugins react to events, modify data via hooks, extend UI |
+| `destroy()` called | `beforeDestroy` action fires, then `plugin.destroy(grid)` for each plugin, then DOM is cleared |
 
 > `plugin.init(grid)` is called **after** data loads and the table renders — `grid.dataSet` is already populated. To run logic before data loads, listen to the `loading` event from inside `init()`.
+
+---
+
+## Hooks vs Events
+
+StreamGrid exposes both **hooks** and **events**. They serve different purposes:
+
+| | Hooks | Events |
+|---|---|---|
+| **Purpose** | Transform data in the pipeline | Notify observers after something happened |
+| **API** | `addFilter()` / `addAction()` | `on()` / `off()` / `emit()` |
+| **Return value** | Filters return modified data; actions fire side effects | No return value expected |
+| **Use case** | Modify rows before render, inject CSS classes, cancel page changes | Logging, analytics, updating external UI |
+
+Both are needed. Hooks let plugins modify the grid's internal pipeline; events let consumers react to the result.
+
+---
+
+## Hook API
+
+All hook methods are available directly on the grid instance.
+
+### Filters
+
+Filters receive a value and return a (possibly modified) version. Multiple filters chain in priority order.
+
+```javascript
+grid.addFilter('hookName', callback, priority?, nsOrOpts?)
+grid.applyFilters('hookName', value, ...args)  // returns transformed value
+grid.removeFilter('hookName', callback)
+grid.hasFilter('hookName')  // returns boolean
+```
+
+### Actions
+
+Actions fire side effects at a specific lifecycle point. They do not return a value.
+
+```javascript
+grid.addAction('hookName', callback, priority?, nsOrOpts?)
+grid.doAction('hookName', ...args)
+grid.removeAction('hookName', callback)
+grid.hasAction('hookName')  // returns boolean
+```
+
+### Async Hooks
+
+For hooks that need to `await` async operations:
+
+```javascript
+await grid.hooks.doActionAsync('hookName', ...args)
+await grid.hooks.applyFiltersAsync('hookName', value, ...args)
+```
+
+### Priority
+
+The optional `priority` parameter (default `10`) controls execution order. Lower numbers run first:
+
+```javascript
+grid.addFilter('beforeRender', myFilter, 5);   // runs before priority 10
+grid.addAction('afterRender', myAction, 20);    // runs after priority 10
+```
+
+Same-priority callbacks execute in registration order (FIFO).
+
+### Namespace
+
+Group hooks under a namespace for bulk removal. Pass a string or options object as the 4th parameter:
+
+```javascript
+// String shorthand
+grid.addAction('afterRender', callback, 10, 'my-plugin');
+grid.addFilter('beforeRender', filter, 10, 'my-plugin');
+
+// Options object
+grid.addAction('afterRender', callback, 10, { namespace: 'my-plugin' });
+
+// Remove all hooks registered under the namespace
+grid.removeAllHooks('my-plugin');
+```
+
+### Once
+
+Register a callback that fires only once, then auto-removes itself:
+
+```javascript
+grid.addAction('afterRender', callback, 10, { once: true });
+
+// Combine with namespace
+grid.addAction('afterRender', callback, 10, { once: true, namespace: 'my-plugin' });
+```
+
+### Error Isolation
+
+If a hook callback throws, the error is caught and logged to `console.error`. The remaining callbacks in the chain continue executing. This prevents a single broken plugin from crashing the entire grid.
+
+### Return Value Contract
+
+If a filter callback returns `undefined` (e.g. forgot a `return` statement), the previous value is preserved and passed to the next filter. This prevents accidental data loss in the chain.
+
+---
+
+## Built-in Hook Fire Points
+
+StreamGrid fires hooks at 11 points in its lifecycle:
+
+### Data Hooks
+
+| Hook | Type | Receives | Returns |
+|---|---|---|---|
+| `beforeFetch` | filter | `config` object | Modified config (passed to adapter) |
+| `afterFetch` | filter | `data` array | Modified data array |
+
+```javascript
+// Inject a custom parameter into every fetch
+grid.addFilter('beforeFetch', config => {
+    config.customParam = 'value';
+    return config;
+});
+
+// Transform rows after fetching
+grid.addFilter('afterFetch', data => {
+    return data.map(row => ({ ...row, name: row.name.toUpperCase() }));
+});
+```
+
+### Render Hooks
+
+| Hook | Type | Receives | Returns |
+|---|---|---|---|
+| `beforeRender` | filter | `rowsToShow` array | Modified rows array |
+| `rowClass` | filter | `{ className, row, index }` | Modified object with `className` |
+| `cellRender` | filter | `{ value, row, column, element }` | Modified object (can replace `element`) |
+| `afterRender` | action | `gridInstance` | — |
+
+```javascript
+// Filter out certain rows before they render
+grid.addFilter('beforeRender', rows => rows.filter(r => r.active));
+
+// Add CSS classes to specific rows
+grid.addFilter('rowClass', info => {
+    return { ...info, className: info.row.status === 'overdue' ? 'highlight-red' : '' };
+});
+
+// Modify cell elements (e.g. add data attributes)
+grid.addFilter('cellRender', info => {
+    info.element.setAttribute('data-field', info.column.field || info.column);
+    return info;
+});
+
+// Run logic after the table has rendered
+grid.addAction('afterRender', grid => {
+    console.log('Table rendered with', grid.getFilteredRows().length, 'rows');
+});
+```
+
+### Filter & Sort Hooks
+
+| Hook | Type | Receives | Returns |
+|---|---|---|---|
+| `beforeFilter` | filter | `{ filterText, fields, options }` | Modified filter config |
+| `beforeSort` | filter | `sortStack` array | Modified sort stack |
+| `afterSort` | action | `{ sortStack }` | — |
+
+```javascript
+// Override or transform the filter text
+grid.addFilter('beforeFilter', config => {
+    config.filterText = config.filterText.replace(/[^\w\s]/g, '');
+    return config;
+});
+
+// Force a specific sort direction
+grid.addFilter('beforeSort', sortStack => {
+    return [{ field: 'name', direction: 'asc' }];
+});
+```
+
+### Pagination Hooks
+
+| Hook | Type | Receives | Returns |
+|---|---|---|---|
+| `beforePageChange` | filter | `{ targetPage, currentPage, totalRows }` | Modified object (set `targetPage: null` to cancel) |
+
+```javascript
+// Prevent navigating past page 5
+grid.addFilter('beforePageChange', info => {
+    if (info.targetPage > 5) return { ...info, targetPage: null };
+    return info;
+});
+
+// Redirect to a different page
+grid.addFilter('beforePageChange', info => {
+    if (info.targetPage === 2) return { ...info, targetPage: 3 };
+    return info;
+});
+```
+
+### Destroy Hook
+
+| Hook | Type | Receives | Returns |
+|---|---|---|---|
+| `beforeDestroy` | action | `gridInstance` | — |
+
+```javascript
+grid.addAction('beforeDestroy', grid => {
+    console.log('Grid is being destroyed');
+});
+
+// Shorthand
+grid.onDestroy(() => { /* cleanup */ });
+```
+
+---
+
+## Command Registry
+
+Register and execute named commands through the grid:
+
+```javascript
+grid.registerCommand('refresh', async () => {
+    grid.showLoading();
+    await grid.init();
+});
+
+grid.registerCommand('exportCSV', () => {
+    const rows = grid.getFilteredRows();
+    return rows.map(r => Object.values(r).join(',')).join('\n');
+});
+
+// Execute from anywhere
+grid.executeCommand('refresh');
+const csv = grid.executeCommand('exportCSV');
+```
+
+Calling `executeCommand` for an unregistered command throws an error.
+
+---
+
+## Debug Mode
+
+Enable debug logging to see every hook call:
+
+```javascript
+grid.hooks.debug = true;
+// Console now logs: [HookManager] hookName (N callbacks)
+```
+
+---
+
+## Destroying the Grid
+
+Call `destroy()` to tear down the grid cleanly:
+
+```javascript
+grid.destroy();
+```
+
+This fires the `beforeDestroy` action, calls `plugin.destroy(grid)` for each plugin (if the method exists), clears the container DOM, and resets the DataSet.
+
+---
+
+## Full Plugin Example
+
+```javascript
+class HighlightPlugin {
+    init(grid) {
+        // Add row highlighting based on data
+        grid.addFilter('rowClass', info => {
+            return { ...info, className: info.row.priority === 'high' ? 'row-highlight' : '' };
+        }, 10, 'highlight-plugin');
+
+        // Add a custom data attribute to every cell
+        grid.addFilter('cellRender', info => {
+            info.element.setAttribute('data-field', info.column.field || info.column);
+            return info;
+        }, 10, 'highlight-plugin');
+
+        // Register a command to toggle highlighting
+        grid.registerCommand('toggleHighlight', () => {
+            this.enabled = !this.enabled;
+        });
+
+        this.enabled = true;
+    }
+
+    destroy(grid) {
+        // Remove all hooks registered under our namespace
+        grid.removeAllHooks('highlight-plugin');
+    }
+}
+```
 
