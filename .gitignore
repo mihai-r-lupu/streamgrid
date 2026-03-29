@@ -1,6 +1,8 @@
 node_modules/
 .private/
 .vscode/
+dashboard/
+dashboard-old/
 dist/
 coverage/
 test-results/
@@ -10,4 +12,7 @@ db.json
 test-db.json
 *.DS_Store
 *.log
+*.zip
 desktop.ini
+.tmp.driveupload/
+plugin-system-prompt.md
