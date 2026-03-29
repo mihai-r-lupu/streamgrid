@@ -19,6 +19,9 @@
     "test:unit": "mocha tests/unit/run-unit-tests.mjs",
     "test:e2e": "playwright test",
     "test": "npm run test:unit && npm run test:e2e",
+    "build": "esbuild src/StreamGrid.js --bundle --format=esm --minify --sourcemap --outfile=dist/streamgrid.min.js",
+    "build:iife": "esbuild src/StreamGrid.js --bundle --format=iife --global-name=StreamGrid --minify --sourcemap --outfile=dist/streamgrid.iife.min.js",
+    "build:all": "npm run build && npm run build:iife",
     "serve:test": "json-server test-db.json --port 3000 --static .",
     "demo": "json-server test-db.json --port 3000 --static . --open /test-page.html"
   },
@@ -40,6 +43,7 @@
     "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.52.0",
     "chai": "^5.2.0",
+    "esbuild": "^0.27.4",
     "esm": "^3.2.25",
     "jsdom": "^26.1.0",
     "json-server": "^0.17.4",
