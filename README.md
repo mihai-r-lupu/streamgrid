@@ -18,6 +18,8 @@ StreamGrid is a lightweight, zero-dependency JavaScript data table library writt
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions, trade-offs, and the module structure.
 
+For the full plugin and hook system reference — all 11 fire points, priority, namespaces, `once`, commands, and the plugin lifecycle — see [docs/Plugins.md](docs/Plugins.md).
+
 ---
 
 ## Installation
