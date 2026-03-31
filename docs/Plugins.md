@@ -427,6 +427,15 @@ class InlineEditPlugin {
             });
             return { value, row, column, element };
         });
+    }
+}
+```
+
+> **Convention hook contract:** a plugin that fires `commitCellEdit` is responsible for also
+> listening to it (or documenting the contract clearly) — the grid itself never fires or
+> validates these hooks. Any plugin in the `plugins` array can listen to them, which is
+> the point: `commitCellEdit` is the extension point that lets a persistence plugin save
+> the value without the editing plugin needing to know about it.
 
         // Write committed values back to the DataSet by row reference
         grid.addAction('commitCellEdit', ({ row, column, newValue }) => {
