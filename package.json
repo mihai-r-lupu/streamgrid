@@ -22,6 +22,7 @@
     "build": "esbuild src/StreamGrid.js --bundle --format=esm --minify --sourcemap --outfile=dist/streamgrid.min.js",
     "build:iife": "esbuild src/StreamGrid.js --bundle --format=iife --global-name=StreamGrid --minify --sourcemap --outfile=dist/streamgrid.iife.min.js",
     "build:all": "npm run build && npm run build:iife",
+    "generate:test-db": "node generate-test-db.js",
     "serve:test": "json-server test-db.json --port 3000 --static .",
     "demo": "json-server test-db.json --port 3000 --static . --open /test-page.html"
   },

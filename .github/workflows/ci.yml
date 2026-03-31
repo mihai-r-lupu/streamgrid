@@ -19,7 +19,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Run unit tests (253 Mocha + Chai)
+      - name: Run unit tests
         run: npm run test:unit
 
   e2e:
@@ -38,6 +38,9 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - name: Generate test database
+        run: npm run generate:test-db
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
