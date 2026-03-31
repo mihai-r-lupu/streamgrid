@@ -18,3 +18,4 @@ import './StreamGrid.sort.test.js';
 import './StreamGridElement.test.js';
 import './StreamGrid.domcolumns.test.js';
 import './StreamGrid.importConfig.test.js';
+import './StreamGrid.beforeDataLoad.test.js';

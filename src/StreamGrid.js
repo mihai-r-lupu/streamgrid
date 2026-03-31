@@ -214,8 +214,12 @@ export class StreamGrid {
 
         data = this.hooks.applyFilters('afterFetch', data);
 
-        this.dataSet = new DataSet(data);
-        this.emit('dataLoaded', data);
+        const loaded = this.hooks.applyFilters('beforeDataLoad', {
+            incoming: data,
+            current: [...this.dataSet.data]
+        });
+        this.dataSet = new DataSet(loaded.incoming);
+        this.emit('dataLoaded', loaded.incoming);
     }
 
     /**

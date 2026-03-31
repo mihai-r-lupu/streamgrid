@@ -182,7 +182,7 @@ If a filter callback returns `undefined` (e.g. forgot a `return` statement), the
 
 ## Built-in Hook Fire Points
 
-StreamGrid fires hooks at 16 points in its lifecycle:
+StreamGrid fires hooks at 17 points in its lifecycle:
 
 ### Data Hooks
 
@@ -190,6 +190,7 @@ StreamGrid fires hooks at 16 points in its lifecycle:
 |---|---|---|---|
 | `beforeFetch` | filter | `config` object | Modified config (passed to adapter) |
 | `afterFetch` | filter | `data` array | Modified data array |
+| `beforeDataLoad` | filter | `{ incoming, current }` | `{ incoming, current }` — must return full object | Merge/transform incoming rows before DataSet is replaced |
 
 ```javascript
 // Inject a custom parameter into every fetch
@@ -352,6 +353,27 @@ class ColumnWidthPlugin {
 >
 > **Snapshot tolerance:** always use `?? defaultValue` for every key read from the snapshot.
 > Snapshots captured before the plugin was installed won't contain the plugin's keys.
+
+### Data Load Hooks
+
+`beforeDataLoad` fires in `_loadData()` after the adapter resolves and after `afterFetch`,
+but **before** `this.dataSet` is replaced. This is the insertion point for:
+
+- **Live polling / merge**: diff incoming rows against current and produce a merged result
+- **Client-side joins**: augment rows with data from a second source
+- **Response normalisation**: flatten or reshape nested API responses
+
+**Plugin contract:** The filter callback receives `{ incoming, current }` and **must return
+the full object** — returning only the array will cause `incoming` to be `undefined`.
+
+```javascript
+grid.addFilter('beforeDataLoad', ({ incoming, current }) => {
+    // Merge by id: update existing rows, append new ones
+    const map = new Map(current.map(r => [r.id, r]));
+    for (const row of incoming) map.set(row.id, { ...map.get(row.id), ...row });
+    return { incoming: [...map.values()], current };
+}, 10, 'live-poll');
+```
 
 ### Plugin-Convention Hooks
 
