@@ -172,8 +172,19 @@ export class StreamGrid {
                 th.dataset.sortable = 'true';
                 th.title = 'Click to sort. Shift+click to add to multi-sort.';
             }
-            headerRow.appendChild(th);
+            if (this.hooks.hasFilter('headerCellRender')) {
+                const result = this.hooks.applyFilters('headerCellRender', { column: col, element: th });
+                headerRow.appendChild(result?.element ?? th);
+            } else {
+                headerRow.appendChild(th);
+            }
         });
+        if (this.hooks.hasFilter('headerRowRender')) {
+            const result = this.hooks.applyFilters('headerRowRender', { element: headerRow });
+            if (result?.element && result.element !== headerRow) {
+                this.theadElement.replaceChild(result.element, headerRow);
+            }
+        }
         if (this.sortStack.length) this._updateSortIndicators();
     }
 
@@ -551,7 +562,12 @@ export class StreamGrid {
 
                 tr.appendChild(td);
             });
-            this.tbodyElement.appendChild(tr);
+            if (this.hooks.hasFilter('rowRender')) {
+                const result = this.hooks.applyFilters('rowRender', { row, index: rowIndex, element: tr });
+                this.tbodyElement.appendChild(result?.element ?? tr);
+            } else {
+                this.tbodyElement.appendChild(tr);
+            }
         });
 
         if (this.paginationMode === 'infinite') {

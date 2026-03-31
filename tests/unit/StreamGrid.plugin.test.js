@@ -287,6 +287,138 @@ describe('StreamGrid - Plugin System', () => {
             grid.goToPage(2);
             expect(grid.currentPage).to.equal(3);
         });
+
+        describe('Batch 1 render hooks', () => {
+            it('headerCellRender fires for each column', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }] });
+                await grid.init();
+
+                grid.addFilter('headerCellRender', ({ column, element }) => {
+                    element.setAttribute('data-custom', 'yes');
+                    return { column, element };
+                });
+                grid._rebuildHeader();
+
+                const ths = container.querySelectorAll('thead th');
+                ths.forEach(th => expect(th.getAttribute('data-custom')).to.equal('yes'));
+            });
+
+            it('headerCellRender can replace the th element', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }] });
+                await grid.init();
+
+                grid.addFilter('headerCellRender', ({ column }) => {
+                    const newTh = document.createElement('th');
+                    newTh.className = 'replaced';
+                    return { column, element: newTh };
+                });
+                grid._rebuildHeader();
+
+                const ths = container.querySelectorAll('thead th');
+                ths.forEach(th => expect(th.className).to.equal('replaced'));
+            });
+
+            it('headerCellRender does not fire when no filter registered', async () => {
+                const grid = makeGrid({
+                    columns: [{ field: 'name', label: 'Name' }],
+                    _rows: [{ name: 'Alice' }]
+                });
+                await grid.init();
+
+                grid._rebuildHeader();
+
+                const ths = container.querySelectorAll('thead th');
+                expect(ths.length).to.equal(1);
+                expect(ths[0].textContent).to.equal('Name');
+            });
+
+            it('headerRowRender fires with the header tr', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }] });
+                await grid.init();
+
+                grid.addFilter('headerRowRender', ({ element }) => {
+                    element.setAttribute('data-row-custom', 'yes');
+                    return { element };
+                });
+                grid._rebuildHeader();
+
+                const tr = container.querySelector('thead tr');
+                expect(tr.getAttribute('data-row-custom')).to.equal('yes');
+            });
+
+            it('headerRowRender can replace the tr element', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }] });
+                await grid.init();
+
+                grid.addFilter('headerRowRender', () => {
+                    const newTr = document.createElement('tr');
+                    const newTh = document.createElement('th');
+                    newTh.className = 'new-row';
+                    newTr.appendChild(newTh);
+                    return { element: newTr };
+                });
+                grid._rebuildHeader();
+
+                const firstChild = grid.theadElement.firstElementChild;
+                expect(firstChild.querySelector('.new-row')).to.not.be.null;
+            });
+
+            it('rowRender fires for each rendered row', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }, { name: 'Bob' }] });
+                await grid.init();
+
+                grid.addFilter('rowRender', (info) => {
+                    info.element.setAttribute('data-custom', 'yes');
+                    return info;
+                });
+                grid._renderBody();
+
+                const trs = container.querySelectorAll('tbody tr');
+                trs.forEach(tr => expect(tr.getAttribute('data-custom')).to.equal('yes'));
+            });
+
+            it('rowRender can replace the tr element', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }, { name: 'Bob' }] });
+                await grid.init();
+
+                grid.addFilter('rowRender', ({ row, index }) => {
+                    const newTr = document.createElement('tr');
+                    newTr.className = 'replaced-row';
+                    return { row, index, element: newTr };
+                });
+                grid._renderBody();
+
+                const trs = container.querySelectorAll('tbody tr');
+                trs.forEach(tr => expect(tr.className).to.equal('replaced-row'));
+            });
+
+            it('rowRender receives correct row and index arguments', async () => {
+                const rows = [{ name: 'Alice' }, { name: 'Bob' }];
+                const grid = makeGrid({ _rows: rows });
+                await grid.init();
+
+                const spy = sinon.spy((info) => info);
+                grid.addFilter('rowRender', spy);
+                grid._renderBody();
+
+                expect(spy.callCount).to.equal(2);
+                expect(spy.firstCall.args[0].index).to.equal(0);
+                expect(spy.firstCall.args[0].row.name).to.equal('Alice');
+                expect(spy.secondCall.args[0].index).to.equal(1);
+                expect(spy.secondCall.args[0].row.name).to.equal('Bob');
+            });
+
+            it('rowRender does not fire when no filter registered', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }, { name: 'Bob' }] });
+                await grid.init();
+
+                grid._renderBody();
+
+                const trs = container.querySelectorAll('tbody tr');
+                expect(trs.length).to.equal(2);
+                expect(trs[0].textContent).to.include('Alice');
+            });
+        });
     });
 
     // ── Grid-level public API pass-through ─────────────────────────────────────

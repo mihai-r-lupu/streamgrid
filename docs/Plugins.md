@@ -182,7 +182,7 @@ If a filter callback returns `undefined` (e.g. forgot a `return` statement), the
 
 ## Built-in Hook Fire Points
 
-StreamGrid fires hooks at 11 points in its lifecycle:
+StreamGrid fires hooks at 14 points in its lifecycle:
 
 ### Data Hooks
 
@@ -209,6 +209,9 @@ grid.addFilter('afterFetch', data => {
 | Hook | Type | Receives | Returns |
 |---|---|---|---|
 | `beforeRender` | filter | `rowsToShow` array | Modified rows array |
+| `headerRowRender` | filter | `{ element }` (`<tr>`) | `{ element }` |
+| `headerCellRender` | filter | `{ column, element }` (`<th>`) | `{ element }` |
+| `rowRender` | filter | `{ row, index, element }` (`<tr>`) | `{ element }` |
 | `rowClass` | filter | `{ className, row, index }` | Modified object with `className` |
 | `cellRender` | filter | `{ value, row, column, element }` | Modified object (can replace `element`) |
 | `afterRender` | action | `gridInstance` | — |
@@ -226,6 +229,32 @@ grid.addFilter('rowClass', info => {
 grid.addFilter('cellRender', info => {
     info.element.setAttribute('data-field', info.column.field || info.column);
     return info;
+});
+
+// Append a resize handle to every header cell (column resize plugin pattern)
+grid.addFilter('headerCellRender', ({ column, element }) => {
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    handle.addEventListener('mousedown', startResize);
+    element.appendChild(handle);
+    return { column, element };
+});
+
+// Apply sticky positioning to the first column header cell (frozen columns pattern)
+grid.addFilter('headerCellRender', ({ column, element }) => {
+    const field = typeof column === 'string' ? column : column.field;
+    if (field === 'name') {
+        element.style.position = 'sticky';
+        element.style.left = '0';
+    }
+    return { column, element };
+});
+
+// Make all rows draggable (row drag-and-drop plugin pattern)
+grid.addFilter('rowRender', ({ row, index, element }) => {
+    element.draggable = true;
+    element.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', index));
+    return { row, index, element };
 });
 
 // Run logic after the table has rendered
