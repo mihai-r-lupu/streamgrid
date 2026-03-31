@@ -419,6 +419,74 @@ describe('StreamGrid - Plugin System', () => {
                 expect(trs[0].textContent).to.include('Alice');
             });
         });
+
+        describe('Batch 4 — plugin-convention editing hooks', () => {
+            it('commitCellEdit action can be registered and fired by a plugin', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }] });
+                await grid.init();
+
+                const spy = sinon.spy();
+                grid.addAction('commitCellEdit', spy);
+
+                const dataRow = grid.dataSet.data[0];
+                grid.doAction('commitCellEdit', {
+                    row: dataRow, column: 'name', oldValue: 'Alice', newValue: 'Bob'
+                });
+
+                expect(spy.calledOnce).to.be.true;
+                expect(spy.firstCall.args[0].oldValue).to.equal('Alice');
+                expect(spy.firstCall.args[0].newValue).to.equal('Bob');
+            });
+
+            it('commitCellEdit write-back updates dataSet via updateRow', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }, { name: 'Bob' }] });
+                await grid.init();
+
+                const firstRow = grid.dataSet.data[0];
+
+                grid.addAction('commitCellEdit', ({ row, column, newValue }) => {
+                    grid.dataSet.updateRow(row, { [column]: newValue });
+                });
+
+                grid.doAction('commitCellEdit', {
+                    row: firstRow, column: 'name', oldValue: 'Alice', newValue: 'Updated'
+                });
+
+                expect(grid.dataSet.data[0].name).to.equal('Updated');
+                expect(grid.dataSet.data[1].name).to.equal('Bob');
+            });
+
+            it('cancelCellEdit action can be registered and fires with correct args', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }] });
+                await grid.init();
+
+                const spy = sinon.spy();
+                grid.addAction('cancelCellEdit', spy);
+
+                grid.doAction('cancelCellEdit', { row: {}, column: 'name' });
+
+                expect(spy.calledOnce).to.be.true;
+                expect(spy.firstCall.args[0].column).to.equal('name');
+            });
+
+            it('beforeCellEdit filter can replace the editor element', async () => {
+                const grid = makeGrid({ _rows: [{ name: 'Alice' }] });
+                await grid.init();
+
+                grid.addFilter('beforeCellEdit', ({ row, column }) => {
+                    const input = document.createElement('input');
+                    input.className = 'custom-input';
+                    return { row, column, element: input };
+                });
+
+                const result = grid.applyFilters('beforeCellEdit', {
+                    row: {}, column: 'name', element: document.createElement('td')
+                });
+
+                expect(result.element.tagName).to.equal('INPUT');
+                expect(result.element.className).to.equal('custom-input');
+            });
+        });
     });
 
     // ── Grid-level public API pass-through ─────────────────────────────────────

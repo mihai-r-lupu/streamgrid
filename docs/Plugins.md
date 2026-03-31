@@ -353,6 +353,64 @@ class ColumnWidthPlugin {
 > **Snapshot tolerance:** always use `?? defaultValue` for every key read from the snapshot.
 > Snapshots captured before the plugin was installed won't contain the plugin's keys.
 
+### Plugin-Convention Hooks
+
+Plugin-convention hooks are not fired by StreamGrid core. They are a named contract that one plugin fires and other plugins can listen to. This is the same pattern as WooCommerce plugin-fired actions — the hook name is a well-known string, but the grid's lifecycle doesn't trigger it automatically.
+
+The inline editing hooks follow this pattern. An editing plugin fires `commitCellEdit` when a cell is saved; a persistence plugin (or the same plugin) listens on `commitCellEdit` to write the value back to the DataSet.
+
+| Hook | Type | Fired by | Arguments |
+|---|---|---|---|
+| `beforeCellEdit` | filter | editing plugin | `{ row, column, element }` |
+| `commitCellEdit` | action | editing plugin | `{ row, column, oldValue, newValue }` |
+| `cancelCellEdit` | action | editing plugin | `{ row, column }` |
+
+```javascript
+// An inline editing plugin — fires hooks as a named contract for other plugins
+class InlineEditPlugin {
+    init(grid) {
+        grid.addFilter('cellRender', ({ value, row, column, element }) => {
+            element.addEventListener('dblclick', () => {
+                // Ask other plugins if they want a custom editor element
+                const editInfo = grid.applyFilters('beforeCellEdit', { row, column, element });
+                const input = editInfo.element.tagName === 'INPUT'
+                    ? editInfo.element
+                    : Object.assign(document.createElement('input'), { value });
+
+                element.replaceChildren(input);
+                input.focus();
+
+                input.addEventListener('blur', () => {
+                    grid.doAction('commitCellEdit', {
+                        row, column,
+                        oldValue: value,
+                        newValue: input.value
+                    });
+                });
+
+                input.addEventListener('keydown', e => {
+                    if (e.key === 'Escape') grid.doAction('cancelCellEdit', { row, column });
+                });
+            });
+            return { value, row, column, element };
+        });
+
+        // Write committed values back to the DataSet by row reference
+        grid.addAction('commitCellEdit', ({ row, column, newValue }) => {
+            const field = typeof column === 'string' ? column : column.field;
+            // updateRow() works by reference identity — no ID needed
+            grid.dataSet.updateRow(row, { [field]: newValue });
+            grid._renderBody();
+        }, 10, 'inline-edit-writeback');
+    }
+}
+```
+
+> **`DataSet.updateRow(rowRef, updates)`** — companion method for editing plugins. Updates a row by
+> object reference identity using `indexOf`. Spreads updates non-destructively. A no-op if the row
+> reference is not found. Used instead of `update(id, updates)` when the plugin has a row reference
+> from `cellRender` but not the row's ID value.
+
 ---
 
 ## Command Registry

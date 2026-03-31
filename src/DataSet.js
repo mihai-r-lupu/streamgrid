@@ -45,6 +45,20 @@ export class DataSet {
     }
 
     /**
+     * Updates a row by object reference identity (Object.is comparison via indexOf).
+     * Used by editing plugins that receive a row reference from cellRender
+     * and need to write back without knowing the row's ID field.
+     * @param {object} rowRef - The exact row object reference to update.
+     * @param {object} updates - Key/value pairs to merge into the row.
+     */
+    updateRow(rowRef, updates) {
+        const index = this.data.indexOf(rowRef);
+        if (index > -1) {
+            this.data[index] = { ...this.data[index], ...updates };
+        }
+    }
+
+    /**
      * Deletes a row by id.
      * @param {number|string} id
      * @param {string} [idField='id']

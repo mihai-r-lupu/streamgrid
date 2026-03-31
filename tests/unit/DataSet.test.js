@@ -55,6 +55,40 @@ describe('DataSet', () => {
         expect(ds.select()[0].id).to.equal(1);
     });
 
+    describe('updateRow()', () => {
+        it('updates a row by reference identity', () => {
+            const row = { id: 1, name: 'Alice' };
+            const ds = new DataSet([row, { id: 2, name: 'Bob' }]);
+            ds.updateRow(row, { name: 'Updated' });
+            expect(ds.data[0].name).to.equal('Updated');
+            expect(ds.data[1].name).to.equal('Bob');
+        });
+
+        it('merges updates without replacing the whole row', () => {
+            const row = { id: 1, name: 'Alice', age: 30 };
+            const ds = new DataSet([row]);
+            ds.updateRow(row, { age: 31 });
+            expect(ds.data[0].name).to.equal('Alice');
+            expect(ds.data[0].age).to.equal(31);
+        });
+
+        it('is a no-op when the row reference is not in the dataset', () => {
+            const row = { id: 99, name: 'Ghost' };
+            const ds = new DataSet([{ id: 1, name: 'Alice' }]);
+            ds.updateRow(row, { name: 'Changed' });
+            expect(ds.data[0].name).to.equal('Alice');
+            expect(ds.data.length).to.equal(1);
+        });
+
+        it('creates a new object reference for the updated row', () => {
+            const row = { id: 1, name: 'Alice' };
+            const ds = new DataSet([row]);
+            ds.updateRow(row, { name: 'Updated' });
+            expect(ds.data[0]).to.not.equal(row);
+            expect(ds.data[0].name).to.equal('Updated');
+        });
+    });
+
     it('correctly determines server-side filtering mode based on settings', () => {
         const grid = new StreamGrid('#dummy', {
             filterMode: 'auto',
