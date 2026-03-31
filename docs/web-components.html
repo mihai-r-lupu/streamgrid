@@ -107,11 +107,11 @@
                 columns from the first row of data. No <code>&lt;stream-grid-column&gt;</code> children needed.
             </p>
 
-            <stream-grid id="wc-minimal" src="http://localhost:3000" table="users" page-size="5">
+            <stream-grid id="wc-minimal" static-src="./demo-data.json" table="users" page-size="5" filter-mode="client">
             </stream-grid>
 
             <div class="source-panel"><span class="tag">&lt;stream-grid</span>
-                <span class="attr">src</span>=<span class="val">"http://localhost:3000"</span>
+                <span class="attr">static-src</span>=<span class="val">"./demo-data.json"</span>
                 <span class="attr">table</span>=<span class="val">"users"</span>
                 <span class="attr">page-size</span>=<span class="val">"5"</span><span class="tag">&gt;</span>
                 <span class="tag">&lt;/stream-grid&gt;</span>
@@ -127,7 +127,7 @@
                 (<code>"string"</code>, <code>"number"</code>, or <code>"date"</code>).
             </p>
 
-            <stream-grid id="wc-columns" src="http://localhost:3000" table="users" page-size="5"
+            <stream-grid id="wc-columns" static-src="./demo-data.json" table="users" page-size="5" filter-mode="client"
                 pagination-mode="numbers">
                 <stream-grid-column field="id" label="ID" width="60px" sorter="number"
                     sortable="false"></stream-grid-column>
@@ -169,7 +169,7 @@
                 control filtering strategy and input responsiveness.
             </p>
 
-            <stream-grid id="wc-filtering" src="http://localhost:3000" table="users" page-size="5" filter-mode="client"
+            <stream-grid id="wc-filtering" static-src="./demo-data.json" table="users" page-size="5" filter-mode="client"
                 filter-debounce="200">
                 <stream-grid-column field="name" label="Name" filter></stream-grid-column>
                 <stream-grid-column field="email" label="Email" filter sortable="false"></stream-grid-column>
@@ -220,7 +220,7 @@
                 <strong>{{value}}</strong> <small>({{row.department}})</small>
             </template>
 
-            <stream-grid id="wc-templates" src="http://localhost:3000" table="users" page-size="5" filter-mode="client">
+            <stream-grid id="wc-templates" static-src="./demo-data.json" table="users" page-size="5" filter-mode="client">
                 <stream-grid-column field="name" label="Name" filter template="profile-tpl"></stream-grid-column>
                 <stream-grid-column field="email" label="Email" template="email-tpl"></stream-grid-column>
                 <stream-grid-column field="department" label="Department" filter sorter="string"></stream-grid-column>
@@ -261,7 +261,7 @@
                 No pagination controls are rendered — rows append automatically as the user scrolls.
             </p>
 
-            <stream-grid id="wc-infinite" src="http://localhost:3000" table="users" page-size="20"
+            <stream-grid id="wc-infinite" static-src="./demo-data.json" table="users" page-size="20"
                 pagination-mode="infinite">
                 <stream-grid-column field="id" label="ID" width="60px" sortable="false"></stream-grid-column>
                 <stream-grid-column field="name" label="Name"></stream-grid-column>
@@ -288,7 +288,7 @@
                 This demo subscribes to sort and filter events and logs them below.
             </p>
 
-            <stream-grid id="wc-escape" src="http://localhost:3000" table="users" page-size="5" filter-mode="client">
+            <stream-grid id="wc-escape" static-src="./demo-data.json" table="users" page-size="5" filter-mode="client">
                 <stream-grid-column field="name" label="Name" filter></stream-grid-column>
                 <stream-grid-column field="email" label="Email" filter></stream-grid-column>
                 <stream-grid-column field="department" label="Department" filter sorter="string"></stream-grid-column>

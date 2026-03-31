@@ -22,6 +22,7 @@ export class StreamGridElement extends HTMLElement {
     static get observedAttributes() {
         return [
             'src',
+            'static-src',
             'table',
             'page-size',
             'pagination-mode',
@@ -187,6 +188,29 @@ export class StreamGridElement extends HTMLElement {
 
         const src = this.getAttribute('src');
         if (src != null) opts.dataAdapter = new RestApiAdapter({ baseUrl: src });
+
+        // static-src: fetch a plain JSON file (array or { table: [] } object) once
+        // and serve data entirely client-side. Intended for GitHub Pages / static hosts
+        // where no REST backend is available. Takes precedence over src when both are set.
+        const staticSrc = this.getAttribute('static-src');
+        if (staticSrc != null) {
+            const tableName = this.getAttribute('table');
+            let _data = null;
+            opts.dataAdapter = {
+                async fetchData() {
+                    if (!_data) {
+                        const res = await fetch(staticSrc);
+                        const json = await res.json();
+                        _data = Array.isArray(json) ? json : (json[tableName] ?? []);
+                    }
+                    return _data;
+                },
+                async getColumns() {
+                    const rows = await this.fetchData();
+                    return rows.length ? Object.keys(rows[0]) : [];
+                },
+            };
+        }
 
         const table = this.getAttribute('table');
         if (table != null) opts.table = table;
