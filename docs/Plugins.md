@@ -178,6 +178,17 @@ If a hook callback throws, the error is caught and logged to `console.error`. Th
 
 If a filter callback returns `undefined` (e.g. forgot a `return` statement), the previous value is preserved and passed to the next filter. This prevents accidental data loss in the chain.
 
+### Async Callbacks in Sync Filters
+
+If a filter callback is declared `async` (or returns a `Promise`) inside a synchronous `applyFilters` call, StreamGrid logs a `console.warn` identifying the hook name and recommending `applyFiltersAsync` instead:
+
+```
+[StreamGrid] filter "beforeRender" returned a Promise.
+Use grid.applyFiltersAsync("beforeRender", ...) or make the callback synchronous.
+```
+
+The `Promise` object would otherwise be stored as the return value, corrupting downstream data with no visible error. When any callback in a filter chain is async, switch the callsite to `applyFiltersAsync`.
+
 ---
 
 ## Built-in Hook Fire Points
@@ -190,7 +201,7 @@ StreamGrid fires hooks at 17 points in its lifecycle:
 |---|---|---|---|
 | `beforeFetch` | filter | `config` object | Modified config (passed to adapter) |
 | `afterFetch` | filter | `data` array | Modified data array |
-| `beforeDataLoad` | filter | `{ incoming, current }` | `{ incoming, current }` — must return full object | Merge/transform incoming rows before DataSet is replaced |
+| `beforeDataLoad` | filter | `{ incoming, current }` | `{ incoming, current }` — must return full object |
 
 ```javascript
 // Inject a custom parameter into every fetch
@@ -518,4 +529,51 @@ class HighlightPlugin {
     }
 }
 ```
+
+---
+
+## Future Enhancements
+
+The following architectural improvements are planned for future releases. They are not yet implemented. The full design notes and implementation guidance live in [plugin-system-extension-plan-phase-2.md](plugin-system-extension-plan-phase-2.md).
+
+### 1. Koa-style middleware (`next()`)
+
+A `grid.use()` method that registers middleware-style callbacks receiving the current value and a `next()` function that invokes the remainder of the chain. This unlocks timing wrappers, conditional short-circuits, and log-around patterns that are not expressible with the current filter chain.
+
+```js
+grid.use('beforeRender', async (rows, next) => {
+    console.time('render');
+    const result = await next(rows);
+    console.timeEnd('render');
+    return result;
+});
+```
+
+Existing `addFilter` callbacks will be automatically wrapped to be `next()`-compatible — no breakng changes.
+
+### 2. Plugin dependency graph
+
+Plugins declare static dependencies by name. StreamGrid resolves init order via topological sort (Kahn's algorithm) and throws a descriptive error on cycles or missing deps:
+
+```js
+class ChartPlugin {
+    static pluginName = 'ChartPlugin';
+    static dependencies = ['ExportPlugin', 'FilterPlugin'];
+    init(grid) { /* guaranteed to run after its deps */ }
+}
+```
+
+`pluginName` and `dependencies` are opt-in. Plugins without them continue to init in array order as today.
+
+### 3. Automatic sync→async promotion
+
+`applyFilters` and `doAction` will detect mid-chain Promise returns and automatically promote the remainder of the chain to async, returning a `Promise` from the overall call. Callers will no longer need to choose between `doAction` and `doActionAsync` — a single dispatch method will handle both transparently with zero overhead on the all-sync fast path.
+
+### 4. Structural no-op detection
+
+At each `applyFilters` call site in the core, the returned value will be compared to the input with `Object.is`. If they are the same reference, the downstream work (re-render, re-sort, etc.) is skipped. Observability plugins that log or sample without modifying values will have zero rendering cost.
+
+### 5. WeakRef-based plugin registration
+
+An optional `owner` field in hook registration options. The hook system stores a `WeakRef` to the owner object and lazily prunes dead entries at dispatch time. Prevents stale-callback memory leaks in SPA environments where grids are mounted and unmounted frequently.
 

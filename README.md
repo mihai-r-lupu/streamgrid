@@ -1,6 +1,6 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-304%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-360%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
@@ -18,7 +18,7 @@ StreamGrid is a lightweight, zero-dependency JavaScript data table library writt
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions, trade-offs, and the module structure.
 
-For the full plugin and hook system reference — all 11 fire points, priority, namespaces, `once`, commands, and the plugin lifecycle — see [docs/Plugins.md](docs/Plugins.md).
+For the full plugin and hook system reference — all 17 fire points, priority, namespaces, `once`, commands, and the plugin lifecycle — see [docs/Plugins.md](docs/Plugins.md).
 
 ---
 
@@ -376,6 +376,18 @@ const grid = new StreamGrid('#grid', {
 | `addFilter(name, fn)` | `void` | Register a hook filter. |
 | `doAction(name, data)` | `void` | Fire a hook action. |
 | `applyFilters(name, value)` | `any` | Apply all registered hook filters to a value. |
+| `doActionAsync(name, ...args)` | `Promise<void>` | Fire a hook action and await all async callbacks. |
+| `applyFiltersAsync(name, value, ...args)` | `Promise<any>` | Apply all registered hook filters asynchronously and return the result. |
+| `removeAction(name, fn)` | `void` | Unregister a specific hook action callback. |
+| `removeFilter(name, fn)` | `void` | Unregister a specific hook filter callback. |
+| `hasAction(name)` | `boolean` | Returns `true` if any action callbacks are registered under `name`. |
+| `hasFilter(name)` | `boolean` | Returns `true` if any filter callbacks are registered under `name`. |
+| `removeAllHooks(namespace)` | `void` | Remove all hooks registered under a given namespace. |
+| `registerCommand(name, handler)` | `void` | Register a named command handler. |
+| `executeCommand(name, ...args)` | `any` | Execute a registered command by name. |
+| `importConfig(snapshot)` | `Promise<void>` | Restores runtime mutable state (page, filter text, sort stack) from a snapshot and re-initialises the grid. Does not overwrite construction-time config. |
+| `onDestroy(callback)` | `void` | Register a callback to run when the grid is destroyed. |
+| `destroy()` | `void` | Tear down the grid: removes event listeners, DOM, and fires `beforeDestroy` hooks. |
 
 ---
 
@@ -492,6 +504,19 @@ grid.addFilter('myFilter', (value) => `[${value}]`);
 const result = grid.applyFilters('myFilter', 'hello');
 // result === '[HELLO]'
 ```
+
+**Async hooks** — when callbacks need to `await` async work:
+
+```js
+grid.addFilter('beforeDataLoad', async ({ incoming, current }) => {
+    const enriched = await fetchMetadata(incoming);
+    return { incoming: enriched, current };
+});
+
+const result = await grid.applyFiltersAsync('beforeDataLoad', { incoming, current });
+```
+
+For the full hook API — priority ordering, namespaces, `once` callbacks, all 17 built-in fire points, `getState`/`setState` for plugin state persistence, the command registry, and debug mode — see [docs/Plugins.md](docs/Plugins.md).
 
 ---
 

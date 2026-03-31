@@ -280,6 +280,20 @@ const grid = new StreamGrid('#grid', { ...saved, dataAdapter: myAdapter });
 
 The restored grid starts on the exact page and with the exact filter text that was active when the snapshot was taken.
 
+### Updating a live grid with `importConfig`
+
+If the grid already exists and you want to restore state without rebuilding it, use `importConfig(snapshot)`. It restores only the runtime-mutable state (current page, filter text, sort stack) and calls `init()` to re-render — construction-time config (columns, page size, adapter, pagination mode, etc.) is left unchanged.
+
+```js
+// Save
+const snapshot = grid.exportConfig();
+localStorage.setItem('gridState', JSON.stringify(snapshot));
+
+// Later — restore into the existing grid
+const saved = JSON.parse(localStorage.getItem('gridState'));
+await grid.importConfig(saved);
+```
+
 ### The `version` field
 
 Every snapshot includes `version: 1`. This field will be incremented if the snapshot schema changes in a future release. If you load a snapshot from a newer version into an older build of StreamGrid, the constructor throws immediately with a descriptive error — before any DOM side effects occur.
@@ -346,3 +360,63 @@ new StreamGrid('#grid', {
 ```
 
 For the full options reference (`sortMode`, `clientSortThreshold`, `sortNullsFirst`, the Shift+click interaction model, and the `sortMode` × `filterMode` combination table) see [Column Sorting](../README.md#column-sorting) in the README.
+
+---
+
+## Plugins
+
+A plugin is any object with an optional `init(grid)` method. Pass plugin instances in the `plugins` array:
+
+```js
+const grid = new StreamGrid('#grid', {
+    dataAdapter: myAdapter,
+    table: 'users',
+    plugins: [new WordCountPlugin(), new CsvExportPlugin()],
+});
+```
+
+StreamGrid calls `plugin.init(grid)` for each plugin after the first data load — `grid.dataSet` is already populated when `init()` runs.
+
+```js
+class WordCountPlugin {
+    init(grid) {
+        const label = document.createElement('div');
+        label.textContent = `${grid.getFilteredRows().length} rows`;
+        grid.on('filterApplied', ({ totalFilteredRows }) => {
+            label.textContent = `${totalFilteredRows} rows`;
+        });
+        grid.container.parentElement.insertBefore(label, grid.container);
+    }
+    destroy(grid) {
+        // Called by grid.destroy() — clean up DOM and listeners here
+    }
+}
+```
+
+---
+
+## Hooks
+
+Hooks let plugins (and any caller) modify data in the grid's processing pipeline or react at lifecycle points.
+
+**Filter hooks** transform a value through a chain of callbacks:
+
+```js
+// Add a computed field to every row before render
+grid.addFilter('beforeRender', rows =>
+    rows.map(row => ({ ...row, fullName: `${row.first} ${row.last}` }))
+);
+```
+
+**Action hooks** fire side effects at lifecycle points without modifying data:
+
+```js
+// Log every render
+grid.addAction('afterRender', grid => {
+    console.log('Rendered', grid.getFilteredRows().length, 'rows');
+});
+```
+
+**Built-in fire points** (17 total): `beforeFetch`, `afterFetch`, `beforeDataLoad`, `beforeFilter`, `beforeRender`, `headerRowRender`, `headerCellRender`, `rowRender`, `rowClass`, `cellRender`, `afterRender`, `beforeSort`, `afterSort`, `beforePageChange`, `getState`, `setState`, `beforeDestroy`.
+
+For the full hook API — priority ordering, namespaces, `once` callbacks, `getState`/`setState` for plugin state persistence, async hooks, the command registry, and worked plugin examples — see [docs/Plugins.md](../docs/Plugins.md).

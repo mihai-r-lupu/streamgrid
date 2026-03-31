@@ -38,7 +38,7 @@ StreamGrid exposes both a hook system and an event emitter. They serve different
 
 **Hooks** (`addFilter` / `addAction`) transform data in the pipeline — they change behaviour. A filter hook receives a value and returns a modified version; an action hook fires side effects at a specific point in the lifecycle. Multiple callbacks chain in priority order (lower numbers first, FIFO within the same priority). This follows the WordPress `add_filter` / `add_action` mental model, extended with priority ordering, namespace support, once-only registration, error isolation, async execution, and a command registry.
 
-The hook system fires at 11 points in the grid lifecycle: `beforeFetch`, `afterFetch`, `beforeRender`, `rowClass`, `cellRender`, `afterRender`, `beforeFilter`, `beforeSort`, `afterSort`, `beforePageChange`, and `beforeDestroy`. See [Plugins.md](Plugins.md) for the full reference.
+The hook system fires at 17 points in the grid lifecycle: `headerCellRender`, `headerRowRender`, `beforeFetch`, `afterFetch`, `beforeDataLoad`, `beforeFilter`, `beforeRender`, `rowClass`, `cellRender`, `rowRender`, `afterRender`, `beforeSort`, `afterSort`, `beforePageChange`, `getState`, `setState`, and `beforeDestroy`. See [Plugins.md](Plugins.md) for the full reference.
 
 **Events** (`on` / `off` / `emit`) notify observers after something has already happened. They don't change the grid's behaviour — they report on it. Events are the right tool for logging, analytics, or updating external UI in response to grid state changes.
 
@@ -96,7 +96,7 @@ The `element.grid` property exposes the underlying `StreamGrid` instance for pro
 
 The test suite has two layers:
 
-**Unit tests** (319 tests, Mocha + Chai + JSDOM + Sinon) run entirely in Node.js with no browser. They cover every public method, adapter, event emitter, hook manager, filter engine, paginator, plugin system, and web component lifecycle. JSDOM provides enough DOM surface for custom elements, `connectedCallback`, and `attributeChangedCallback`.
+**Unit tests** (360 tests, Mocha + Chai + JSDOM + Sinon) run entirely in Node.js with no browser. They cover every public method, adapter, event emitter, hook manager, filter engine, paginator, plugin system, and web component lifecycle. JSDOM provides enough DOM surface for custom elements, `connectedCallback`, and `attributeChangedCallback`.
 
 **End-to-end tests** (51 tests, Playwright) run against a real browser with a live json-server backend. The suite uses Page Object Model: three page object classes (`GridPage`, `CacheGridPage`, `ExportGridPage`) centralise selectors and interaction methods, exposed via custom Playwright fixtures. Tests are tagged `@smoke` (9 critical-path tests, ~14s) and `@regression` for CI gating.
 
