@@ -17,3 +17,4 @@ import './StreamGrid.render.test.js';
 import './StreamGrid.sort.test.js';
 import './StreamGridElement.test.js';
 import './StreamGrid.domcolumns.test.js';
+import './StreamGrid.importConfig.test.js';

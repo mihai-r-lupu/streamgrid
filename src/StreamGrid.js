@@ -830,7 +830,31 @@ export class StreamGrid {
             loadingText: typeof this.loadingText === 'function' ? undefined : this.loadingText,
             emptyText: typeof this.emptyText === 'function' ? undefined : this.emptyText,
         };
-        return JSON.parse(JSON.stringify(result));
+        // Allow plugins to add their own state keys to the snapshot
+        const withPluginState = this.hooks.applyFilters('getState', result);
+        return JSON.parse(JSON.stringify(withPluginState));
+    }
+
+    /**
+     * Restores runtime mutable state from a snapshot and re-initialises the grid.
+     * Only restores state that changes during normal use (page, filter text, sort stack).
+     * Construction-time config (columns, pageSize, adapter, pagination mode, etc.) is
+     * set once via `new StreamGrid(el, config)` and is not overwritten here.
+     *
+     * Plugin contract: `setState` handlers must be synchronous — they fire before
+     * `init()` re-renders. Any async setState handler will race the render and lose.
+     * Plugins must use `?? defaultValue` for every key they read from the snapshot;
+     * snapshots captured before the plugin was installed won't contain plugin keys.
+     *
+     * @param {object} snapshot - A snapshot object produced by `exportConfig()`.
+     * @returns {Promise<void>} The promise returned by `init()`.
+     */
+    importConfig(snapshot) {
+        this.currentPage = snapshot.currentPage ?? 1;
+        this.currentFilterText = snapshot.currentFilterText ?? '';
+        this.sortStack = snapshot.sortStack ?? [];
+        this.hooks.doAction('setState', snapshot);
+        return this.init();
     }
 
     /**

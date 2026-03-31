@@ -182,7 +182,7 @@ If a filter callback returns `undefined` (e.g. forgot a `return` statement), the
 
 ## Built-in Hook Fire Points
 
-StreamGrid fires hooks at 14 points in its lifecycle:
+StreamGrid fires hooks at 16 points in its lifecycle:
 
 ### Data Hooks
 
@@ -318,6 +318,40 @@ grid.addAction('beforeDestroy', grid => {
 // Shorthand
 grid.onDestroy(() => { /* cleanup */ });
 ```
+
+### State Hooks
+
+These hooks allow plugins to participate in the `exportConfig()` / `importConfig()` round-trip,
+saving and restoring their own state alongside the grid's built-in state.
+
+| Hook | Type | Receives | Returns |
+|---|---|---|---|
+| `getState` | filter | full config snapshot object | augmented snapshot (spread in plugin keys) |
+| `setState` | action | full snapshot object | — |
+
+```javascript
+// A ColumnWidthPlugin saving and restoring column widths:
+class ColumnWidthPlugin {
+    constructor() { this._widths = {}; }
+
+    init(grid) {
+        // On export: add column widths to the snapshot
+        grid.addFilter('getState', state => ({ ...state, columnWidths: this._widths }), 10, 'col-width');
+
+        // On import: restore column widths from snapshot
+        // Must use ?? — older snapshots won't have this key
+        grid.addAction('setState', snapshot => {
+            this._widths = snapshot.columnWidths ?? {};
+        }, 10, 'col-width');
+    }
+}
+```
+
+> **Plugin contract:** `setState` handlers must be **synchronous**. They fire before `init()`
+> re-renders — any async handler will race the render and produce inconsistent state.
+>
+> **Snapshot tolerance:** always use `?? defaultValue` for every key read from the snapshot.
+> Snapshots captured before the plugin was installed won't contain the plugin's keys.
 
 ---
 
