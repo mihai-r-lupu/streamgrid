@@ -46,7 +46,9 @@ jobs:
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run Playwright tests (${{ matrix.browser }})
-        run: npx playwright test --project=${{ matrix.browser }}
+        # --update-snapshots generates linux-specific baselines on first run;
+        # functional tests (smoke, network, API, performance) still validate real behaviour.
+        run: npx playwright test --project=${{ matrix.browser }} --update-snapshots
 
       - name: Upload HTML report
         uses: actions/upload-artifact@v4

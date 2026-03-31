@@ -1,6 +1,9 @@
 // In-memory dataset: wraps a row array and exposes CRUD, sort, and filter operations.
 
 import { filterRows } from './core/filtering/filterEngine.js';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 /**
  * Handles local dataset operations: select, insert, update, delete, sort.

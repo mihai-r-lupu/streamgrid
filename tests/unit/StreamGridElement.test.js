@@ -163,16 +163,17 @@ describe('StreamGrid Web Component', function () {
             expect(el.grid).to.be.null;
         });
 
-        it('static observedAttributes includes all seven mapped attributes', () => {
+        it('static observedAttributes includes all eight mapped attributes', () => {
             const attrs = StreamGridElement.observedAttributes;
             expect(attrs).to.include('src');
+            expect(attrs).to.include('static-src');
             expect(attrs).to.include('table');
             expect(attrs).to.include('page-size');
             expect(attrs).to.include('pagination-mode');
             expect(attrs).to.include('filter-mode');
             expect(attrs).to.include('filter-debounce');
             expect(attrs).to.include('sort-mode');
-            expect(attrs).to.have.length(7);
+            expect(attrs).to.have.length(8);
         });
     });
 

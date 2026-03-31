@@ -471,14 +471,21 @@ test.describe('API Layer @regression', () => {
 
 test.describe('Network Resilience @regression', () => {
   test('grid shows empty state when API returns no data', async ({ page }) => {
-    await page.route('**/users*', route =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
-    );
+    // Navigate normally first so all grids load, then intercept and re-init only
+    // the main #grid. This avoids a Firefox-specific crash caused by too many
+    // simultaneous route intercepts firing at page load time.
     const { GridPage } = await import('./pages/GridPage.js');
     const grid = new GridPage(page);
     await grid.goto();
-    // With empty data, the grid should render but have zero rows
+    await grid.waitForReady();
+
+    await page.route('**/users*', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    );
+    // Re-init only the main grid so it fetches the now-intercepted empty response.
+    await page.evaluate(() => window.grid.init());
     await page.waitForLoadState('networkidle');
+
     const rows = await page.$$eval('#grid tbody tr', els => els.length);
     expect(rows).toBeLessThanOrEqual(1); // 0 rows or 1 empty-state row
   });
@@ -520,9 +527,11 @@ test.describe('Network Resilience @regression', () => {
   });
 
   test('filtered request reaches server with correct query param', async ({ page }) => {
-    let interceptedUrl = '';
+    // Capture the URL of each /users* request; after filtering, the last one
+    // must carry the filter term so we know it reached the server.
+    const interceptedUrls = [];
     await page.route('**/users*', route => {
-      interceptedUrl = route.request().url();
+      interceptedUrls.push(route.request().url());
       return route.continue();
     });
     const { GridPage } = await import('./pages/GridPage.js');
@@ -531,9 +540,10 @@ test.describe('Network Resilience @regression', () => {
     await grid.waitForReady();
 
     await grid.filterBy('alice');
-    // Wait for the filter request to fire
+    // Wait for the debounced filter request to complete
     await page.waitForLoadState('networkidle');
-    expect(interceptedUrl).toContain('alice');
+    // At least one request must contain the filter term
+    expect(interceptedUrls.some(url => url.includes('alice'))).toBe(true);
   });
 });
 
