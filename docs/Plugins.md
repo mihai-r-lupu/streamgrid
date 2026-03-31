@@ -125,11 +125,11 @@ grid.hasAction('hookName')  // returns boolean
 
 ### Async Hooks
 
-For hooks that need to `await` async operations:
+For hooks that need to `await` async operations. Callbacks are awaited sequentially in priority order:
 
 ```javascript
-await grid.hooks.doActionAsync('hookName', ...args)
-await grid.hooks.applyFiltersAsync('hookName', value, ...args)
+await grid.doActionAsync('hookName', ...args)
+await grid.applyFiltersAsync('hookName', value, ...args)
 ```
 
 ### Priority
@@ -432,6 +432,12 @@ class InlineEditPlugin {
 > object reference identity using `indexOf`. Spreads updates non-destructively. A no-op if the row
 > reference is not found. Used instead of `update(id, updates)` when the plugin has a row reference
 > from `cellRender` but not the row's ID value.
+
+> **Async hooks:** For use cases where hook callbacks need to perform async work (e.g., a
+> `commitCellEdit` handler that writes to the server, or a `beforeDataLoad` handler that
+> enriches rows from a second API), use `grid.doActionAsync()` / `grid.applyFiltersAsync()`.
+> Callbacks are awaited sequentially in priority order. The sync variants (`doAction`,
+> `applyFilters`) remain unchanged — do not swap them in core fire points.
 
 ---
 

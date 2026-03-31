@@ -931,6 +931,8 @@ export class StreamGrid {
     removeAllHooks(namespace) { this.hooks.removeAllHooks(namespace); }
     registerCommand(name, handler) { this.hooks.registerCommand(name, handler); }
     executeCommand(name, ...args) { return this.hooks.executeCommand(name, ...args); }
+    doActionAsync(name, ...args) { return this.hooks.doActionAsync(name, ...args); }
+    applyFiltersAsync(name, value, ...args) { return this.hooks.applyFiltersAsync(name, value, ...args); }
 
     /**
      * Convenience method — shorthand for `addAction('beforeDestroy', callback)`.

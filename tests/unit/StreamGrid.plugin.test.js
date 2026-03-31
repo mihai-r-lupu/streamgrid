@@ -620,4 +620,44 @@ describe('StreamGrid - Plugin System', () => {
             expect(grid.dataSet.data.length).to.equal(0);
         });
     });
+
+    describe('Batch 6 — async hook delegation', () => {
+        it('doActionAsync is exposed on the grid instance', async () => {
+            const grid = makeGrid();
+            await grid.init();
+            expect(typeof grid.doActionAsync).to.equal('function');
+        });
+
+        it('applyFiltersAsync is exposed on the grid instance', async () => {
+            const grid = makeGrid();
+            await grid.init();
+            expect(typeof grid.applyFiltersAsync).to.equal('function');
+        });
+
+        it('doActionAsync runs async action callbacks and awaits them', async () => {
+            const grid = makeGrid();
+            await grid.init();
+
+            const results = [];
+            grid.addAction('asyncTestAction', async () => {
+                await Promise.resolve();
+                results.push('done');
+            });
+
+            await grid.doActionAsync('asyncTestAction');
+            expect(results).to.deep.equal(['done']);
+        });
+
+        it('applyFiltersAsync runs async filter callbacks and returns transformed value', async () => {
+            const grid = makeGrid();
+            await grid.init();
+
+            grid.addFilter('asyncTestFilter', async (value) => {
+                return Promise.resolve(value + 1);
+            });
+
+            const result = await grid.applyFiltersAsync('asyncTestFilter', 41);
+            expect(result).to.equal(42);
+        });
+    });
 });
