@@ -142,6 +142,12 @@ export class HookManager {
             const entry = list[i];
             try {
                 const returned = entry.callback(result, ...args);
+                if (returned !== undefined && typeof returned.then === 'function') {
+                    console.warn(
+                        `[StreamGrid] filter "${hookName}" returned a Promise. ` +
+                        `Use grid.applyFiltersAsync("${hookName}", ...) or make the callback synchronous.`
+                    );
+                }
                 if (returned !== undefined) result = returned;
             } catch (err) {
                 console.error(`[HookManager] filter "${hookName}" callback threw:`, err);

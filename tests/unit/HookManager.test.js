@@ -482,4 +482,35 @@ describe('HookManager', () => {
             expect(cb.calledOnce).to.be.true;
         });
     });
+
+    describe('applyFilters — async callback warning', () => {
+        it('warns when a filter callback returns a Promise', () => {
+            const hooks = new HookManager();
+            const warn = sinon.stub(console, 'warn');
+            hooks.addFilter('testHook', async () => 'async value');
+            hooks.applyFilters('testHook', 'original');
+            sinon.assert.calledOnce(warn);
+            sinon.assert.calledWithMatch(warn, sinon.match(/testHook/));
+            sinon.assert.calledWithMatch(warn, sinon.match(/applyFiltersAsync/));
+            warn.restore();
+        });
+
+        it('does not warn when a filter callback returns a plain value', () => {
+            const hooks = new HookManager();
+            const warn = sinon.stub(console, 'warn');
+            hooks.addFilter('plainHook', (v) => v.toUpperCase());
+            hooks.applyFilters('plainHook', 'hello');
+            sinon.assert.notCalled(warn);
+            warn.restore();
+        });
+
+        it('does not warn when a filter callback returns undefined', () => {
+            const hooks = new HookManager();
+            const warn = sinon.stub(console, 'warn');
+            hooks.addFilter('passthroughHook', () => undefined);
+            hooks.applyFilters('passthroughHook', 'value');
+            sinon.assert.notCalled(warn);
+            warn.restore();
+        });
+    });
 });
