@@ -23,7 +23,7 @@ jobs:
         run: npm run test:unit
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -39,16 +39,11 @@ jobs:
 
       - run: npm ci
 
-      - name: Generate test database
-        run: npm run generate:test-db
-
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run Playwright tests (${{ matrix.browser }})
-        # --update-snapshots generates linux-specific baselines on first run;
-        # functional tests (smoke, network, API, performance) still validate real behaviour.
-        run: npx playwright test --project=${{ matrix.browser }} --update-snapshots
+        run: npx playwright test --project=${{ matrix.browser }}
 
       - name: Upload HTML report
         uses: actions/upload-artifact@v4

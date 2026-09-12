@@ -4,10 +4,28 @@
 // Selectors live in tests/integration/pages/, fixtures in fixtures.js.
 import { test, expect } from './fixtures.js';
 import AxeBuilder from '@axe-core/playwright';
+import { fileURLToPath } from 'node:url';
 
 // ── Core Grid ─────────────────────────────────────────────────────────────────
 
 test.describe('Core Grid', () => {
+  test('browser entry points load as native ES modules @smoke', async ({ page }) => {
+    await page.goto('/test-page.html');
+    // Import in the browser so Node-only dependencies fail with the actual
+    // module resolution error, rather than a timeout waiting for grid rows.
+    const result = await page.evaluate(async () => {
+      const { StreamGrid } = await import('/src/StreamGrid.js');
+      const { DataSet } = await import('/src/DataSet.js');
+      await import('/src/webComponent/stream-grid.js');
+      return {
+        grid: typeof StreamGrid,
+        rows: new DataSet([{ id: 1 }]).select(),
+        element: typeof customElements.get('stream-grid'),
+      };
+    });
+    expect(result).toEqual({ grid: 'function', rows: [{ id: 1 }], element: 'function' });
+  });
+
   test('loads first page rows (real data) @smoke', async ({ gridPage }) => {
     const rows = await gridPage.rowCount();
     expect(rows).toBeLessThanOrEqual(10);
@@ -394,31 +412,30 @@ test.describe('Accessibility @regression', () => {
 
 // ── Visual Regression ─────────────────────────────────────────────────────────
 
+// The fixed demo header otherwise overlays grids when screenshot capture scrolls
+// them into view. Hide it only during capture, without changing the grid layout.
+const gridScreenshotOptions = {
+  maxDiffPixelRatio: 0.01,
+  stylePath: fileURLToPath(new URL('./screenshot.css', import.meta.url)),
+};
+
 test.describe('Visual Regression @regression', () => {
   test('main grid matches baseline screenshot', async ({ gridPage }) => {
-    await expect(gridPage.page.locator('#grid')).toHaveScreenshot('grid-default.png', {
-      maxDiffPixelRatio: 0.01,
-    });
+    await expect(gridPage.page.locator('#grid')).toHaveScreenshot('grid-default.png', gridScreenshotOptions);
   });
 
   test('pagination grid matches baseline screenshot', async ({ gridPage }) => {
     await gridPage.waitForPaginationReady();
-    await expect(gridPage.page.locator('#pagination-grid')).toHaveScreenshot('grid-pagination.png', {
-      maxDiffPixelRatio: 0.01,
-    });
+    await expect(gridPage.page.locator('#pagination-grid')).toHaveScreenshot('grid-pagination.png', gridScreenshotOptions);
   });
 
   test('filtered grid matches baseline screenshot', async ({ gridPage }) => {
     await gridPage.filterBy('alice');
-    await expect(gridPage.page.locator('#grid')).toHaveScreenshot('grid-filtered.png', {
-      maxDiffPixelRatio: 0.01,
-    });
+    await expect(gridPage.page.locator('#grid')).toHaveScreenshot('grid-filtered.png', gridScreenshotOptions);
   });
 
   test('cache grid matches baseline screenshot', async ({ cacheGridPage: cache }) => {
-    await expect(cache.page.locator('#cache-grid')).toHaveScreenshot('grid-cache.png', {
-      maxDiffPixelRatio: 0.01,
-    });
+    await expect(cache.page.locator('#cache-grid')).toHaveScreenshot('grid-cache.png', gridScreenshotOptions);
   });
 });
 
