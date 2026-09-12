@@ -1,6 +1,7 @@
 # StreamGrid
 
-![Tests](https://img.shields.io/badge/tests-360%20passing-brightgreen)
+[![CI](https://github.com/mihai-r-lupu/streamgrid/actions/workflows/ci.yml/badge.svg)](https://github.com/mihai-r-lupu/streamgrid/actions/workflows/ci.yml)
+![Unit tests](https://img.shields.io/badge/unit_tests-363%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
 
@@ -592,18 +593,23 @@ See [docs/Adapters.md](docs/Adapters.md) for full `CacheAdapter` options.
 
 ## Testing
 
-StreamGrid has **304 tests** — 253 unit tests and 51 end-to-end tests.
+StreamGrid has **363 passing unit tests** (also verified at revision `94a5256`).
+The Playwright suite contains **52 end-to-end scenarios**, run in Chromium,
+Firefox, and WebKit (**156 browser test executions**). The CI badge above reports
+the combined unit and browser result; the unit-test count alone does not imply
+that the complete suite passes.
 
 **Unit tests** (Mocha + Chai, JSDOM — no browser required):
 
 ```bash
-npm run test:unit      # 253 tests
+npm run test:unit      # 363 unit tests
 ```
 
 **End-to-end tests** (Playwright — server starts automatically):
 
 ```bash
-npm run test:e2e       # 51 tests across Chromium, Firefox, and WebKit
+npx playwright install --with-deps
+npm run test:e2e       # 52 scenarios × 3 browsers = 156 executions
 ```
 
 The E2E suite uses Page Object Model with custom Playwright fixtures and includes:
@@ -613,11 +619,18 @@ The E2E suite uses Page Object Model with custom Playwright fixtures and include
 - **API-layer validation** — Playwright `request` context tests against the REST endpoint
 - **Network resilience** — route interception tests for empty data, slow responses, and 500 errors
 - **Performance budgets** — render time and DOM node count assertions
-- **Test tags** — run `npx playwright test --grep "@smoke"` for a 9-test critical-path subset (~14s)
+- **Test tags** — run `npx playwright test --grep "@smoke"` for 10 critical-path scenarios in each browser
 
-Playwright auto-starts json-server via the `webServer` config. To keep the server running for manual testing as well:
+Playwright generates the test database and auto-starts json-server via the
+`webServer` config. CI compares screenshots with the checked-in Linux baselines;
+it does not regenerate them. To update baselines intentionally after reviewing a
+visual change, run `npx playwright test --grep "Visual Regression" --update-snapshots`
+on the target platform and review the image diffs before committing.
+
+To keep the server running for manual testing as well:
 
 ```bash
+npm run generate:test-db
 npm run serve:test     # terminal 1: start json-server on port 3000
 npm run test:e2e       # terminal 2: run Playwright tests
 ```

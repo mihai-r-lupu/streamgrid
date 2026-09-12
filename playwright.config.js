@@ -20,9 +20,9 @@ export default defineConfig({
   // json-server serves both the REST API (/users) and static files (test-page.html)
   // from the project root via the --static flag.
   webServer: {
-    command: 'npm run serve:test',
+    command: 'npm run generate:test-db && npm run serve:test',
     url: 'http://localhost:3000/users',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 30000,
   },
 
