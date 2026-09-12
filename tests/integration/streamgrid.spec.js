@@ -4,6 +4,7 @@
 // Selectors live in tests/integration/pages/, fixtures in fixtures.js.
 import { test, expect } from './fixtures.js';
 import AxeBuilder from '@axe-core/playwright';
+import { fileURLToPath } from 'node:url';
 
 // ── Core Grid ─────────────────────────────────────────────────────────────────
 
@@ -411,31 +412,30 @@ test.describe('Accessibility @regression', () => {
 
 // ── Visual Regression ─────────────────────────────────────────────────────────
 
+// The fixed demo header otherwise overlays grids when screenshot capture scrolls
+// them into view. Hide it only during capture, without changing the grid layout.
+const gridScreenshotOptions = {
+  maxDiffPixelRatio: 0.01,
+  stylePath: fileURLToPath(new URL('./screenshot.css', import.meta.url)),
+};
+
 test.describe('Visual Regression @regression', () => {
   test('main grid matches baseline screenshot', async ({ gridPage }) => {
-    await expect(gridPage.page.locator('#grid')).toHaveScreenshot('grid-default.png', {
-      maxDiffPixelRatio: 0.01,
-    });
+    await expect(gridPage.page.locator('#grid')).toHaveScreenshot('grid-default.png', gridScreenshotOptions);
   });
 
   test('pagination grid matches baseline screenshot', async ({ gridPage }) => {
     await gridPage.waitForPaginationReady();
-    await expect(gridPage.page.locator('#pagination-grid')).toHaveScreenshot('grid-pagination.png', {
-      maxDiffPixelRatio: 0.01,
-    });
+    await expect(gridPage.page.locator('#pagination-grid')).toHaveScreenshot('grid-pagination.png', gridScreenshotOptions);
   });
 
   test('filtered grid matches baseline screenshot', async ({ gridPage }) => {
     await gridPage.filterBy('alice');
-    await expect(gridPage.page.locator('#grid')).toHaveScreenshot('grid-filtered.png', {
-      maxDiffPixelRatio: 0.01,
-    });
+    await expect(gridPage.page.locator('#grid')).toHaveScreenshot('grid-filtered.png', gridScreenshotOptions);
   });
 
   test('cache grid matches baseline screenshot', async ({ cacheGridPage: cache }) => {
-    await expect(cache.page.locator('#cache-grid')).toHaveScreenshot('grid-cache.png', {
-      maxDiffPixelRatio: 0.01,
-    });
+    await expect(cache.page.locator('#cache-grid')).toHaveScreenshot('grid-cache.png', gridScreenshotOptions);
   });
 });
 

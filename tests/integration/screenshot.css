@@ -1,0 +1,4 @@
+/* Keep the fixed demo header from covering the grid during screenshot capture. */
+.page-header {
+  visibility: hidden;
+}
